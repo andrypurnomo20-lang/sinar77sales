@@ -45,6 +45,12 @@
                     <select id="outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                         <option value="">-- Memuat daftar outlet... --</option>
                     </select>
+                    <a id="navigate-link" href="#" target="_blank" class="hidden mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm items-center justify-center transition">
+                        <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                        Buka Rute ke Outlet Ini
+                    </a>
                 </div>
 
                 <!-- Sales Rep -->
@@ -171,8 +177,24 @@
                 return;
             }
             select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                outlets.map(o => `<option value="${o.id}" data-name="${o.name}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
         }
+
+        document.getElementById('outlet_select').addEventListener('change', function(e) {
+            const selected = e.target.options[e.target.selectedIndex];
+            const lat = selected.dataset.lat;
+            const lng = selected.dataset.lng;
+            const navLink = document.getElementById('navigate-link');
+
+            if (lat && lng) {
+                navLink.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                navLink.classList.remove('hidden');
+                navLink.classList.add('flex');
+            } else {
+                navLink.classList.add('hidden');
+                navLink.classList.remove('flex');
+            }
+        });
 
         document.getElementById('outlet_search').addEventListener('input', function(e) {
             const keyword = e.target.value.toLowerCase();
