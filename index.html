@@ -205,7 +205,10 @@
                             closeModal();
                             if (result.status === 'success') {
                                 document.getElementById('address').value = result.address;
-                                showModal('Berhasil', 'Titik GPS & alamat berhasil terisi otomatis! Silakan cek dan sesuaikan jika perlu.');
+                                if (result.city) {
+                                    document.getElementById('city').value = result.city;
+                                }
+                                showModal('Berhasil', 'Titik GPS, alamat & kota berhasil terisi otomatis! Silakan cek dan sesuaikan jika perlu.');
                             } else {
                                 showModal('Catatan', 'Titik GPS terkunci, tapi alamat gagal diambil otomatis. Silakan isi alamat secara manual.');
                             }
