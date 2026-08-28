@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visit Log - Catat Kunjungan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-emerald-600 text-white shadow-md sticky top-0 z-20">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">Visit Log</h1>
+                    <p class="text-[10px] text-emerald-200">Catat Kunjungan Outlet</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-3 py-4 w-full flex-grow">
+
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b flex items-center">
+                <svg class="w-4 h-4 mr-1.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Form Kunjungan
+            </h2>
+
+            <form id="visit-form" class="space-y-3.5">
+
+                <!-- Pilih Outlet -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
+                    <input type="text" id="outlet_search" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-2" placeholder="Ketik nama outlet untuk cari...">
+                    <select id="outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="">-- Memuat daftar outlet... --</option>
+                    </select>
+                </div>
+
+                <!-- Sales Rep -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                    <input type="text" id="sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                </div>
+
+                <!-- GPS Check-in -->
+                <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-bold uppercase text-emerald-900">Check-in Lokasi</label>
+                        <button type="button" id="gps-btn" onclick="getLocationGPS()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm flex items-center transition">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            </svg>
+                            Check-in Sekarang
+                        </button>
+                    </div>
+                    <p id="gps-status" class="text-xs text-slate-500">Belum check-in. Wajib check-in dulu sebelum submit.</p>
+                    <input type="hidden" id="gps_checkin">
+                </div>
+
+                <!-- Status Kunjungan -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Status Kunjungan *</label>
+                    <select id="status_kunjungan" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Order">Order</option>
+                        <option value="Tidak Order">Tidak Order</option>
+                        <option value="Tutup">Tutup</option>
+                        <option value="Pemilik Tidak Ada">Pemilik Tidak Ada</option>
+                    </select>
+                </div>
+
+                <!-- Sudah Lihat TikTok -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Owner/Pelanggan Sudah Lihat TikTok Sinar77?</label>
+                    <select id="sudah_lihat_tiktok" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="Tidak Tahu">Tidak Tahu / Belum Ditanya</option>
+                        <option value="Ya">Ya, Sudah Lihat</option>
+                        <option value="Tidak">Belum Pernah Lihat</option>
+                    </select>
+                </div>
+
+                <!-- Catatan -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Catatan</label>
+                    <textarea id="catatan" rows="2" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Detail kunjungan, alasan follow-up, dll..."></textarea>
+                </div>
+
+                <button type="submit" id="submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md flex items-center justify-center space-x-2 mt-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span id="submit-btn-text">Simpan Kunjungan</span>
+                </button>
+            </form>
+        </div>
+
+    </main>
+
+    <div id="notification-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-5 rounded-2xl max-w-xs w-full shadow-xl text-center">
+            <h3 id="modal-title" class="text-base font-bold text-slate-900 mb-1">Notifikasi</h3>
+            <p id="modal-message" class="text-slate-600 text-xs mb-4">Pesan...</p>
+            <button onclick="closeModal()" class="w-full bg-emerald-600 text-white font-semibold py-2 rounded-xl text-xs">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // GANTI dengan URL Web App Apps Script Anda (sama seperti di form Outlet Master)
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+
+        let allOutlets = [];
+        let checkinLat = null, checkinLng = null;
+
+        window.onload = function() {
+            loadOutlets();
+        }
+
+        function loadOutlets() {
+            fetch(`${APPS_SCRIPT_URL}?action=list_outlets`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        allOutlets = result.outlets;
+                        renderOutletOptions(allOutlets);
+                    } else {
+                        document.getElementById('outlet_select').innerHTML = '<option value="">Gagal memuat daftar outlet</option>';
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('outlet_select').innerHTML = '<option value="">Gagal memuat: cek koneksi</option>';
+                });
+        }
+
+        function renderOutletOptions(outlets) {
+            const select = document.getElementById('outlet_select');
+            if (outlets.length === 0) {
+                select.innerHTML = '<option value="">Tidak ada outlet ditemukan</option>';
+                return;
+            }
+            select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+        }
+
+        document.getElementById('outlet_search').addEventListener('input', function(e) {
+            const keyword = e.target.value.toLowerCase();
+            const filtered = allOutlets.filter(o => o.name.toLowerCase().includes(keyword) || (o.city || '').toLowerCase().includes(keyword));
+            renderOutletOptions(filtered);
+        });
+
+        function getLocationGPS() {
+            if (!navigator.geolocation) {
+                showModal('Info', 'GPS tidak didukung perangkat ini.');
+                return;
+            }
+
+            const gpsBtn = document.getElementById('gps-btn');
+            gpsBtn.disabled = true;
+            document.getElementById('gps-status').innerText = 'Mendeteksi lokasi...';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    checkinLat = pos.coords.latitude;
+                    checkinLng = pos.coords.longitude;
+                    document.getElementById('gps_checkin').value = `https://www.google.com/maps?q=${checkinLat},${checkinLng}`;
+                    document.getElementById('gps-status').innerText = '✓ Check-in berhasil, lokasi terkunci.';
+                    document.getElementById('gps-status').className = 'text-xs text-emerald-700 font-semibold';
+                    gpsBtn.disabled = false;
+                },
+                (err) => {
+                    document.getElementById('gps-status').innerText = 'Gagal ambil lokasi. Coba lagi atau cek izin lokasi browser.';
+                    gpsBtn.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            document.getElementById('notification-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('notification-modal').classList.add('hidden');
+        }
+
+        document.getElementById('visit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const outletSelect = document.getElementById('outlet_select');
+            const outletId = outletSelect.value;
+            const outletName = outletSelect.options[outletSelect.selectedIndex]?.dataset.name || '';
+            const gpsCheckin = document.getElementById('gps_checkin').value;
+
+            if (!outletId) {
+                showModal('Gagal', 'Silakan pilih outlet terlebih dahulu.');
+                return;
+            }
+            if (!gpsCheckin) {
+                showModal('Gagal', 'Wajib check-in lokasi sebelum submit kunjungan.');
+                return;
+            }
+
+            const newVisit = {
+                form_type: 'visit_log',
+                outlet_id: outletId,
+                outlet_name: outletName,
+                sales_rep: document.getElementById('sales_rep').value.trim(),
+                status_kunjungan: document.getElementById('status_kunjungan').value,
+                sudah_lihat_tiktok: document.getElementById('sudah_lihat_tiktok').value,
+                catatan: document.getElementById('catatan').value.trim(),
+                gps_checkin: gpsCheckin
+            };
+
+            if (!newVisit.sales_rep || !newVisit.status_kunjungan) {
+                showModal('Gagal', 'Sales Rep dan Status Kunjungan wajib diisi.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-btn');
+            const submitBtnText = document.getElementById('submit-btn-text');
+            submitBtn.disabled = true;
+            submitBtnText.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(newVisit)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    submitBtn.disabled = false;
+                    submitBtnText.innerText = 'Simpan Kunjungan';
+
+                    if (result.status === 'success') {
+                        let msg = `Kunjungan ke ${newVisit.outlet_name} tersimpan!`;
+                        if (result.verifikasi === 'Perlu dicek') {
+                            msg += ` Catatan: lokasi check-in agak jauh dari titik outlet (${result.jarak}m), mungkin karena GPS kurang presisi di area ini.`;
+                        } else if (result.verifikasi === 'Lokasi jauh dari outlet') {
+                            msg += ` Perhatian: lokasi check-in cukup jauh dari titik outlet (${result.jarak}m).`;
+                        }
+                        showModal('Sukses', msg);
+
+                        document.getElementById('visit-form').reset();
+                        document.getElementById('gps_checkin').value = '';
+                        document.getElementById('gps-status').innerText = 'Belum check-in. Wajib check-in dulu sebelum submit.';
+                        document.getElementById('gps-status').className = 'text-xs text-slate-500';
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => {
+                    submitBtn.disabled = false;
+                    submitBtnText.innerText = 'Simpan Kunjungan';
+                    showModal('Gagal', 'Terjadi kesalahan koneksi: ' + err.message);
+                });
+        });
+    </script>
+</body>
+</html>
