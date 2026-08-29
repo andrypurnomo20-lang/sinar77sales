@@ -129,6 +129,21 @@
                     </div>
                 </div>
 
+                <!-- Data Kompetitor -->
+                <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-100 space-y-3">
+                    <label class="block text-xs font-bold uppercase text-amber-900">Data Kompetitor Saat Ini</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Brand Dipakai Sekarang</label>
+                            <input type="text" id="brand_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Contoh: ABC, Indofood">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Beli Saat Ini</label>
+                            <input type="text" id="harga_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Contoh: 25000/botol">
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Catatan</label>
                     <input type="text" id="notes" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Catatan khusus...">
@@ -259,7 +274,9 @@
                 outstanding_balance: 0,
                 sales_rep: document.getElementById('sales_rep').value.trim(),
                 notes: document.getElementById('notes').value.trim(),
-                gps: document.getElementById('gps_link').value.trim()
+                gps: document.getElementById('gps_link').value.trim(),
+                brand_kompetitor: document.getElementById('brand_kompetitor').value.trim(),
+                harga_kompetitor: document.getElementById('harga_kompetitor').value.trim()
             };
 
             if (!newOutlet.outlet_name) {
@@ -297,6 +314,8 @@
                         document.getElementById('sales_rep').value = '';
                         document.getElementById('notes').value = '';
                         document.getElementById('gps_link').value = '';
+                        document.getElementById('brand_kompetitor').value = '';
+                        document.getElementById('harga_kompetitor').value = '';
                         generateAutoID();
                     } else {
                         showModal('Gagal', 'Error: ' + result.message);
