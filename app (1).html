@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinar77 Sales App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .view { display: none; }
+        .view.active { display: block; }
+        @media print {
+            body * { visibility: hidden; }
+            #nota-print, #nota-print * { visibility: visible; }
+            #nota-print { position: absolute; top: 0; left: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <!-- ============ HEADER ============ -->
+    <header class="bg-slate-800 text-white shadow-md sticky top-0 z-20">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <button id="back-btn" onclick="goHome()" class="hidden mr-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <div>
+                    <h1 id="header-title" class="text-base font-bold leading-tight">Sinar77 Sales App</h1>
+                    <p id="header-sub" class="text-[10px] text-slate-300">Pilih menu di bawah</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-3 py-4 w-full">
+
+        <!-- ============ VIEW: HOME MENU ============ -->
+        <div id="view-home" class="view active">
+            <div class="grid grid-cols-1 gap-3 mt-2">
+                <button onclick="showView('outlet')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-indigo-400 transition">
+                    <div class="bg-indigo-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Outlet Master</div>
+                        <div class="text-xs text-slate-500">Daftarkan outlet baru</div>
+                    </div>
+                </button>
+
+                <button onclick="showView('visit')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-emerald-400 transition">
+                    <div class="bg-emerald-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Visit Log</div>
+                        <div class="text-xs text-slate-500">Catat kunjungan outlet</div>
+                    </div>
+                </button>
+
+                <button onclick="showView('order')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-amber-400 transition">
+                    <div class="bg-amber-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 2a1 1 0 000 2h6a1 1 0 100-2H9zM4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Form Order</div>
+                        <div class="text-xs text-slate-500">Catat transaksi / order outlet</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: OUTLET MASTER ============ -->
+        <div id="view-outlet" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Form Outlet Baru</h2>
+                    <button type="button" onclick="generateAutoID()" class="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-lg">Auto ID</button>
+                </div>
+
+                <form id="outlet-form" class="space-y-3.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet ID *</label>
+                            <input type="text" id="outlet_id" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-sm font-mono" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nama Outlet *</label>
+                            <input type="text" id="outlet_name" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Contoh: Toko Berkah">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Owner Name</label>
+                            <input type="text" id="owner_name" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Pemilik">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Phone Number</label>
+                            <input type="tel" id="phone_number" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="08xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-bold uppercase text-indigo-900">Lokasi & Titik GPS</label>
+                            <button type="button" id="outlet-gps-btn" onclick="getLocationGPS_outlet()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm flex items-center transition">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                                Ambil GPS HP Saya
+                            </button>
+                        </div>
+                        <textarea id="address" rows="2" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Alamat otomatis terisi setelah ambil GPS..."></textarea>
+                        <input type="text" id="gps_link" class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl text-xs font-mono text-slate-600" placeholder="Koordinat Maps otomatis terisi...">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">City / Area</label>
+                            <input type="text" id="city" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Kota">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipe Outlet</label>
+                            <select id="tipe" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                                <option value="Retail">Retail</option>
+                                <option value="Grosir">Grosir</option>
+                                <option value="Modern Market">Modern Market</option>
+                                <option value="Horeca">Horeca</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kategori</label>
+                            <select id="kategori" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                                <option value="Platinum">Platinum</option>
+                                <option value="Gold">Gold</option>
+                                <option value="Silver" selected>Silver</option>
+                                <option value="Bronze">Bronze</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Status</label>
+                            <select id="status" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                                <option value="Active" selected>Active</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Dormant">Dormant</option>
+                                <option value="Lost">Lost</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
+                            <input type="text" id="outlet_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Sales">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Join Date</label>
+                            <input type="date" id="join_date" class="w-full px-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm text-slate-600" readonly>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-100 space-y-3">
+                        <label class="block text-xs font-bold uppercase text-amber-900">Data Kompetitor Saat Ini</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Brand Dipakai Sekarang</label>
+                                <input type="text" id="brand_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Contoh: ABC">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Beli Saat Ini</label>
+                                <input type="text" id="harga_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="25000/botol">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Catatan</label>
+                        <input type="text" id="notes" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Catatan khusus...">
+                    </div>
+
+                    <button type="submit" id="outlet-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                        <span id="outlet-submit-text">Simpan & Masuk Spreadsheet</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: VISIT LOG ============ -->
+        <div id="view-visit" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Form Kunjungan</h2>
+
+                <form id="visit-form" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
+                        <input type="text" id="visit_outlet_search" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-2" placeholder="Ketik nama outlet untuk cari...">
+                        <select id="visit_outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat daftar outlet... --</option>
+                        </select>
+                        <a id="visit-navigate-link" href="#" target="_blank" class="hidden mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm items-center justify-center transition">
+                            Buka Rute ke Outlet Ini
+                        </a>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                        <input type="text" id="visit_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                        <button type="button" onclick="gantiSalesRep('visit')" id="visit-ganti-nama-btn" class="hidden text-[10px] text-emerald-600 font-semibold mt-1">Ganti nama</button>
+                    </div>
+
+                    <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-bold uppercase text-emerald-900">Check-in Lokasi</label>
+                            <button type="button" id="visit-gps-btn" onclick="getLocationGPS_visit()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm">Check-in Sekarang</button>
+                        </div>
+                        <p id="visit-gps-status" class="text-xs text-slate-500">Belum check-in. Wajib check-in dulu sebelum submit.</p>
+                        <input type="hidden" id="visit_gps_checkin">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Status Kunjungan *</label>
+                        <select id="status_kunjungan" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Pilih Status --</option>
+                            <option value="Order">Order</option>
+                            <option value="Tidak Order">Tidak Order</option>
+                            <option value="Tutup">Tutup</option>
+                            <option value="Pemilik Tidak Ada">Pemilik Tidak Ada</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600" id="order-hint" style="display:none;">
+                        Status "Order" dipilih — jangan lupa catat transaksinya di menu <b>Form Order</b> setelah kunjungan ini disimpan.
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Owner/Pelanggan Sudah Lihat TikTok Sinar77?</label>
+                        <select id="sudah_lihat_tiktok" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="Tidak Tahu">Tidak Tahu / Belum Ditanya</option>
+                            <option value="Ya">Ya, Sudah Lihat</option>
+                            <option value="Tidak">Belum Pernah Lihat</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Catatan</label>
+                        <textarea id="visit_catatan" rows="2" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Detail kunjungan, alasan follow-up, dll..."></textarea>
+                    </div>
+
+                    <button type="submit" id="visit-submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                        <span id="visit-submit-text">Simpan Kunjungan</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: FORM ORDER ============ -->
+        <div id="view-order" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Form Order</h2>
+
+                <form id="order-form" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
+                        <input type="text" id="order_outlet_search" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-2" placeholder="Ketik nama outlet untuk cari...">
+                        <select id="order_outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat daftar outlet... --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                        <input type="text" id="order_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                        <button type="button" onclick="gantiSalesRep('order')" id="order-ganti-nama-btn" class="hidden text-[10px] text-amber-600 font-semibold mt-1">Ganti nama</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Item *</label>
+                        <input type="text" id="item" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Contoh: Kecap Sinar77 600ml">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Qty *</label>
+                            <input type="number" id="qty" required min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0" oninput="hitungTotal()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Satuan *</label>
+                            <input type="number" id="price" required min="0" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0" oninput="hitungTotal()">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Total</label>
+                        <div id="total_display" class="text-lg font-bold text-slate-900">Rp 0</div>
+                        <input type="hidden" id="total">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran *</label>
+                        <select id="metode_bayar" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="toggleKredit()">
+                            <option value="Cash">Cash</option>
+                            <option value="Kredit">Kredit (7 hari)</option>
+                        </select>
+                    </div>
+
+                    <div id="kredit-info" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                        Kredit 7 hari — jatuh tempo otomatis dihitung dari tanggal hari ini saat submit. Wajib ada bukti tanda tangan kertas untuk kredit ini.
+                    </div>
+
+                    <button type="submit" id="order-submit-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                        <span id="order-submit-text">Simpan Order</span>
+                    </button>
+                </form>
+
+                <!-- Nota hasil, muncul setelah submit sukses -->
+                <div id="nota-container" class="hidden mt-6 border-t pt-4">
+                    <div id="nota-print" class="border border-dashed border-slate-400 rounded-xl p-4 font-mono text-xs max-w-xs mx-auto">
+                        <div class="text-center font-bold mb-2">NOTA SINAR77</div>
+                        <div id="nota-content"></div>
+                    </div>
+                    <button onclick="window.print()" class="w-full mt-3 bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-xl">
+                        Cetak Nota
+                    </button>
+                    <p class="text-[10px] text-slate-400 mt-2 text-center">Tempel nota ini di kertas fisik untuk ditandatangani owner (khusus kredit).</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="notification-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-5 rounded-2xl max-w-xs w-full shadow-xl text-center">
+            <h3 id="modal-title" class="text-base font-bold text-slate-900 mb-1">Notifikasi</h3>
+            <p id="modal-message" class="text-slate-600 text-xs mb-4">Pesan...</p>
+            <button onclick="closeModal()" class="w-full bg-indigo-600 text-white font-semibold py-2 rounded-xl text-xs">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+
+        let allOutlets = [];
+
+        function showView(name) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + name).classList.add('active');
+            document.getElementById('back-btn').classList.remove('hidden');
+
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order' };
+            document.getElementById('header-title').innerText = titles[name];
+            document.getElementById('header-sub').innerText = subs[name];
+
+            if (name === 'outlet' && !document.getElementById('outlet_id').value) {
+                document.getElementById('join_date').value = new Date().toISOString().split('T')[0];
+                generateAutoID();
+            }
+            if ((name === 'visit' || name === 'order') && allOutlets.length === 0) {
+                loadOutlets();
+            }
+            loadSavedSalesRep();
+        }
+
+        function goHome() {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-home').classList.add('active');
+            document.getElementById('back-btn').classList.add('hidden');
+            document.getElementById('header-title').innerText = 'Sinar77 Sales App';
+            document.getElementById('header-sub').innerText = 'Pilih menu di bawah';
+        }
+
+        function loadSavedSalesRep() {
+            const savedName = localStorage.getItem('sinar77_sales_rep');
+            if (!savedName) return;
+            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input && !input.value) {
+                    input.value = savedName;
+                    input.readOnly = true;
+                    input.classList.add('bg-slate-50');
+                }
+            });
+            const v = document.getElementById('visit-ganti-nama-btn');
+            const o = document.getElementById('order-ganti-nama-btn');
+            if (v) v.classList.remove('hidden');
+            if (o) o.classList.remove('hidden');
+        }
+
+        function gantiSalesRep(ctx) {
+            const id = ctx === 'visit' ? 'visit_sales_rep' : 'order_sales_rep';
+            const input = document.getElementById(id);
+            input.readOnly = false;
+            input.classList.remove('bg-slate-50');
+            input.value = '';
+            input.focus();
+        }
+
+        function simpanSalesRep(nama) {
+            localStorage.setItem('sinar77_sales_rep', nama);
+        }
+
+        function generateAutoID() {
+            document.getElementById('outlet_id').value = `OUT-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        function getLocationGPS_outlet() {
+            if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
+            const btn = document.getElementById('outlet-gps-btn');
+            btn.disabled = true;
+            showModal('GPS', 'Mendeteksi titik koordinat GPS...');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+                    document.getElementById('gps_link').value = `https://www.google.com/maps?q=${lat},${lon}`;
+                    fetch(`${APPS_SCRIPT_URL}?action=geocode&lat=${lat}&lng=${lon}`)
+                        .then(res => res.json())
+                        .then(result => {
+                            btn.disabled = false;
+                            closeModal();
+                            if (result.status === 'success') {
+                                document.getElementById('address').value = result.address;
+                                if (result.city) document.getElementById('city').value = result.city;
+                                showModal('Berhasil', 'Titik GPS & alamat berhasil terisi otomatis!');
+                            } else {
+                                showModal('Catatan', 'GPS terkunci, alamat gagal otomatis. Isi manual.');
+                            }
+                        })
+                        .catch(() => { btn.disabled = false; closeModal(); showModal('Catatan', 'GPS terkunci, alamat gagal otomatis. Isi manual.'); });
+                },
+                () => { btn.disabled = false; closeModal(); showModal('Catatan', 'GPS dibatasi browser. Cek izin lokasi.'); },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        document.getElementById('outlet-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newOutlet = {
+                outlet_id: document.getElementById('outlet_id').value.trim(),
+                outlet_name: document.getElementById('outlet_name').value.trim(),
+                owner_name: document.getElementById('owner_name').value.trim(),
+                phone_number: document.getElementById('phone_number').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                tipe: document.getElementById('tipe').value,
+                kategori: document.getElementById('kategori').value,
+                status: document.getElementById('status').value,
+                join_date: document.getElementById('join_date').value,
+                last_visit: document.getElementById('join_date').value,
+                last_order: '-', total_orders: 0, total_omzet: 0, outstanding_balance: 0,
+                sales_rep: document.getElementById('outlet_sales_rep').value.trim(),
+                notes: document.getElementById('notes').value.trim(),
+                gps: document.getElementById('gps_link').value.trim(),
+                brand_kompetitor: document.getElementById('brand_kompetitor').value.trim(),
+                harga_kompetitor: document.getElementById('harga_kompetitor').value.trim()
+            };
+            if (!newOutlet.outlet_name) { showModal('Gagal', 'Nama outlet wajib diisi.'); return; }
+
+            const btn = document.getElementById('outlet-submit-btn');
+            const txt = document.getElementById('outlet-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newOutlet) })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Simpan & Masuk Spreadsheet';
+                    if (result.status === 'success') {
+                        if (newOutlet.sales_rep) simpanSalesRep(newOutlet.sales_rep);
+                        showModal('Sukses', `Outlet ${newOutlet.outlet_name} tersimpan!`);
+                        ['outlet_name','owner_name','phone_number','address','city','notes','gps_link','brand_kompetitor','harga_kompetitor'].forEach(id => document.getElementById(id).value = '');
+                        allOutlets = [];
+                        generateAutoID();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Simpan & Masuk Spreadsheet'; showModal('Gagal', 'Koneksi error: ' + err.message); });
+        });
+
+        function loadOutlets() {
+            fetch(`${APPS_SCRIPT_URL}?action=list_outlets`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        allOutlets = result.outlets;
+                        renderOutletOptions(allOutlets, 'visit_outlet_select');
+                        renderOutletOptions(allOutlets, 'order_outlet_select');
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function renderOutletOptions(outlets, selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            if (outlets.length === 0) { select.innerHTML = '<option value="">Tidak ada outlet ditemukan</option>'; return; }
+            select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+        }
+
+        document.getElementById('visit_outlet_search').addEventListener('input', function(e) {
+            const kw = e.target.value.toLowerCase();
+            renderOutletOptions(allOutlets.filter(o => o.name.toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw)), 'visit_outlet_select');
+        });
+        document.getElementById('order_outlet_search').addEventListener('input', function(e) {
+            const kw = e.target.value.toLowerCase();
+            renderOutletOptions(allOutlets.filter(o => o.name.toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw)), 'order_outlet_select');
+        });
+
+        document.getElementById('visit_outlet_select').addEventListener('change', function(e) {
+            const sel = e.target.options[e.target.selectedIndex];
+            const link = document.getElementById('visit-navigate-link');
+            if (sel.dataset.lat && sel.dataset.lng) {
+                link.href = `https://www.google.com/maps/dir/?api=1&destination=${sel.dataset.lat},${sel.dataset.lng}`;
+                link.classList.remove('hidden'); link.classList.add('flex');
+            } else {
+                link.classList.add('hidden'); link.classList.remove('flex');
+            }
+        });
+
+        function getLocationGPS_visit() {
+            if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
+            const btn = document.getElementById('visit-gps-btn');
+            btn.disabled = true;
+            document.getElementById('visit-gps-status').innerText = 'Mendeteksi lokasi...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('visit_gps_checkin').value = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    document.getElementById('visit-gps-status').innerText = '✓ Check-in berhasil, lokasi terkunci.';
+                    document.getElementById('visit-gps-status').className = 'text-xs text-emerald-700 font-semibold';
+                    btn.disabled = false;
+                },
+                () => { document.getElementById('visit-gps-status').innerText = 'Gagal ambil lokasi. Coba lagi.'; btn.disabled = false; },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        document.getElementById('status_kunjungan').addEventListener('change', function(e) {
+            document.getElementById('order-hint').style.display = (e.target.value === 'Order') ? 'block' : 'none';
+        });
+
+        document.getElementById('visit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const sel = document.getElementById('visit_outlet_select');
+            const outletId = sel.value;
+            const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+            const gps = document.getElementById('visit_gps_checkin').value;
+
+            if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+            if (!gps) { showModal('Gagal', 'Wajib check-in lokasi dulu.'); return; }
+
+            const newVisit = {
+                form_type: 'visit_log',
+                outlet_id: outletId, outlet_name: outletName,
+                sales_rep: document.getElementById('visit_sales_rep').value.trim(),
+                status_kunjungan: document.getElementById('status_kunjungan').value,
+                sudah_lihat_tiktok: document.getElementById('sudah_lihat_tiktok').value,
+                catatan: document.getElementById('visit_catatan').value.trim(),
+                gps_checkin: gps
+            };
+            if (!newVisit.sales_rep || !newVisit.status_kunjungan) { showModal('Gagal', 'Sales Rep & Status wajib diisi.'); return; }
+
+            const btn = document.getElementById('visit-submit-btn');
+            const txt = document.getElementById('visit-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newVisit) })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Simpan Kunjungan';
+                    if (result.status === 'success') {
+                        if (newVisit.sales_rep) simpanSalesRep(newVisit.sales_rep);
+                        let msg = `Kunjungan ke ${newVisit.outlet_name} tersimpan!`;
+                        if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
+                        else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
+                        if (newVisit.status_kunjungan === 'Order') msg += ' Jangan lupa catat transaksinya di menu Form Order.';
+                        showModal('Sukses', msg);
+                        document.getElementById('visit-form').reset();
+                        document.getElementById('visit_gps_checkin').value = '';
+                        document.getElementById('visit-gps-status').innerText = 'Belum check-in.';
+                        document.getElementById('visit-gps-status').className = 'text-xs text-slate-500';
+                        document.getElementById('order-hint').style.display = 'none';
+                        loadSavedSalesRep();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Simpan Kunjungan'; showModal('Gagal', 'Koneksi error: ' + err.message); });
+        });
+
+        function hitungTotal() {
+            const qty = parseFloat(document.getElementById('qty').value) || 0;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            const total = qty * price;
+            document.getElementById('total').value = total;
+            document.getElementById('total_display').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        }
+
+        function toggleKredit() {
+            const isKredit = document.getElementById('metode_bayar').value === 'Kredit';
+            document.getElementById('kredit-info').classList.toggle('hidden', !isKredit);
+        }
+
+        document.getElementById('order-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const sel = document.getElementById('order_outlet_select');
+            const outletId = sel.value;
+            const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+
+            if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+
+            const newOrder = {
+                form_type: 'order',
+                outlet_id: outletId, outlet_name: outletName,
+                sales_rep: document.getElementById('order_sales_rep').value.trim(),
+                item: document.getElementById('item').value.trim(),
+                qty: document.getElementById('qty').value,
+                price: document.getElementById('price').value,
+                total: document.getElementById('total').value,
+                metode_bayar: document.getElementById('metode_bayar').value
+            };
+            if (!newOrder.sales_rep || !newOrder.item || !newOrder.qty || !newOrder.price) {
+                showModal('Gagal', 'Lengkapi semua field wajib.'); return;
+            }
+
+            const btn = document.getElementById('order-submit-btn');
+            const txt = document.getElementById('order-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newOrder) })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Simpan Order';
+                    if (result.status === 'success') {
+                        if (newOrder.sales_rep) simpanSalesRep(newOrder.sales_rep);
+                        tampilkanNota(newOrder, result);
+                        showModal('Sukses', `Order tersimpan sebagai ${result.jenis_order}!`);
+                        document.getElementById('order-form').reset();
+                        document.getElementById('total_display').innerText = 'Rp 0';
+                        document.getElementById('kredit-info').classList.add('hidden');
+                        loadSavedSalesRep();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Simpan Order'; showModal('Gagal', 'Koneksi error: ' + err.message); });
+        });
+
+        function tampilkanNota(order, result) {
+            const now = new Date();
+            const tgl = now.toLocaleDateString('id-ID');
+            let html = `
+                Tanggal: ${tgl}<br>
+                Outlet: ${order.outlet_name}<br>
+                Sales: ${order.sales_rep}<br>
+                ------------------------------<br>
+                ${order.item}<br>
+                ${order.qty} x Rp${parseInt(order.price).toLocaleString('id-ID')} = Rp${parseInt(order.total).toLocaleString('id-ID')}<br>
+                ------------------------------<br>
+                <b>TOTAL: Rp${parseInt(order.total).toLocaleString('id-ID')}</b><br>
+                Pembayaran: ${order.metode_bayar}<br>
+            `;
+            if (result.jatuh_tempo) {
+                html += `Jatuh Tempo: ${result.jatuh_tempo}<br><br>Tanda Tangan Owner:<br><br>___________________`;
+            }
+            document.getElementById('nota-content').innerHTML = html;
+            document.getElementById('nota-container').classList.remove('hidden');
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            document.getElementById('notification-modal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('notification-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>
