@@ -276,26 +276,45 @@
                         <button type="button" onclick="gantiSalesRep('order')" id="order-ganti-nama-btn" class="hidden text-[10px] text-amber-600 font-semibold mt-1">Ganti nama</button>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Item *</label>
-                        <input type="text" id="item" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Contoh: Kecap Sinar77 600ml">
+                    <!-- Tambah Item ke Keranjang -->
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                        <label class="block text-xs font-bold uppercase text-slate-700">Tambah Produk</label>
+                        <select id="item" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="pilihProduk()">
+                            <option value="">-- Pilih Produk --</option>
+                            <option value="Kecap Manis Jerigen 5L" data-harga="41000">Kecap Manis - Jerigen 5 Liter (Rp41.000)</option>
+                            <option value="Saus Lombok Jerigen 5L" data-harga="42500">Saus Lombok - Jerigen 5 Liter (Rp42.500)</option>
+                            <option value="Cuka Botol/Lusin" data-harga="61000">Cuka - Botol/Lusin, 12 Botol (Rp61.000)</option>
+                            <option value="Kecap Botol/Lusin" data-harga="64000">Kecap - Botol/Lusin, 12 Botol (Rp64.000)</option>
+                            <option value="Saos Botol/Lusin" data-harga="65500">Saos - Botol/Lusin, 12 Botol (Rp65.500)</option>
+                            <option value="Kecap Karton 20pcs" data-harga="79000">Kecap - Karton 20 pcs (Rp79.000)</option>
+                            <option value="Saos Karton 20pcs" data-harga="79000">Saos - Karton 20 pcs (Rp79.000)</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Qty</label>
+                                <input type="number" id="qty" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" placeholder="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Satuan</label>
+                                <input type="number" id="price" min="0" readonly class="w-full px-3 py-2.5 border border-slate-200 bg-slate-100 rounded-xl text-sm text-slate-600" placeholder="Otomatis">
+                            </div>
+                        </div>
+                        <button type="button" onclick="tambahKeKeranjang()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-xl">
+                            + Tambah ke Pesanan
+                        </button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Qty *</label>
-                            <input type="number" id="qty" required min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0" oninput="hitungTotal()">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Satuan *</label>
-                            <input type="number" id="price" required min="0" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0" oninput="hitungTotal()">
+                    <!-- Daftar Item di Keranjang -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Daftar Pesanan</label>
+                        <div id="cart-list" class="space-y-2">
+                            <p class="text-xs text-slate-400 text-center py-3">Belum ada produk ditambahkan.</p>
                         </div>
                     </div>
 
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Total</label>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Grand Total</label>
                         <div id="total_display" class="text-lg font-bold text-slate-900">Rp 0</div>
-                        <input type="hidden" id="total">
                     </div>
 
                     <div>
@@ -590,12 +609,60 @@
                 .catch(err => { btn.disabled = false; txt.innerText = 'Simpan Kunjungan'; showModal('Gagal', 'Koneksi error: ' + err.message); });
         });
 
-        function hitungTotal() {
-            const qty = parseFloat(document.getElementById('qty').value) || 0;
-            const price = parseFloat(document.getElementById('price').value) || 0;
-            const total = qty * price;
-            document.getElementById('total').value = total;
-            document.getElementById('total_display').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        function pilihProduk() {
+            const sel = document.getElementById('item');
+            const harga = sel.options[sel.selectedIndex]?.dataset.harga || '';
+            document.getElementById('price').value = harga;
+        }
+
+        // ============ KERANJANG ORDER (MULTI-ITEM) ============
+        let cart = [];
+
+        function tambahKeKeranjang() {
+            const sel = document.getElementById('item');
+            const itemName = sel.value;
+            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const price = parseInt(document.getElementById('price').value) || 0;
+
+            if (!itemName) { showModal('Info', 'Pilih produk dulu.'); return; }
+            if (qty < 1) { showModal('Info', 'Isi qty minimal 1.'); return; }
+
+            cart.push({ item: itemName, qty: qty, price: price, total: qty * price });
+            renderCart();
+
+            // Reset input tambah produk, siap untuk item berikutnya
+            sel.value = '';
+            document.getElementById('qty').value = '';
+            document.getElementById('price').value = '';
+        }
+
+        function hapusDariKeranjang(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-list');
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Belum ada produk ditambahkan.</p>';
+                hitungGrandTotal();
+                return;
+            }
+            container.innerHTML = cart.map((c, i) => `
+                <div class="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-2.5 text-xs">
+                    <div>
+                        <div class="font-semibold text-slate-800">${c.item}</div>
+                        <div class="text-slate-500">${c.qty} x Rp${c.price.toLocaleString('id-ID')} = Rp${c.total.toLocaleString('id-ID')}</div>
+                    </div>
+                    <button type="button" onclick="hapusDariKeranjang(${i})" class="text-red-500 font-bold px-2">✕</button>
+                </div>
+            `).join('');
+            hitungGrandTotal();
+        }
+
+        function hitungGrandTotal() {
+            const grandTotal = cart.reduce((sum, c) => sum + c.total, 0);
+            document.getElementById('total_display').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
         }
 
         function toggleKredit() {
@@ -610,20 +677,20 @@
             const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
 
             if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+            if (cart.length === 0) { showModal('Gagal', 'Tambahkan minimal 1 produk ke pesanan.'); return; }
 
+            const salesRep = document.getElementById('order_sales_rep').value.trim();
+            if (!salesRep) { showModal('Gagal', 'Sales Rep wajib diisi.'); return; }
+
+            const grandTotal = cart.reduce((sum, c) => sum + c.total, 0);
             const newOrder = {
                 form_type: 'order',
                 outlet_id: outletId, outlet_name: outletName,
-                sales_rep: document.getElementById('order_sales_rep').value.trim(),
-                item: document.getElementById('item').value.trim(),
-                qty: document.getElementById('qty').value,
-                price: document.getElementById('price').value,
-                total: document.getElementById('total').value,
+                sales_rep: salesRep,
+                items: cart,
+                grand_total: grandTotal,
                 metode_bayar: document.getElementById('metode_bayar').value
             };
-            if (!newOrder.sales_rep || !newOrder.item || !newOrder.qty || !newOrder.price) {
-                showModal('Gagal', 'Lengkapi semua field wajib.'); return;
-            }
 
             const btn = document.getElementById('order-submit-btn');
             const txt = document.getElementById('order-submit-text');
@@ -634,11 +701,12 @@
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan Order';
                     if (result.status === 'success') {
-                        if (newOrder.sales_rep) simpanSalesRep(newOrder.sales_rep);
+                        simpanSalesRep(salesRep);
                         tampilkanNota(newOrder, result);
                         showModal('Sukses', `Order tersimpan sebagai ${result.jenis_order}!`);
                         document.getElementById('order-form').reset();
-                        document.getElementById('total_display').innerText = 'Rp 0';
+                        cart = [];
+                        renderCart();
                         document.getElementById('kredit-info').classList.add('hidden');
                         loadSavedSalesRep();
                     } else {
@@ -656,10 +724,9 @@
                 Outlet: ${order.outlet_name}<br>
                 Sales: ${order.sales_rep}<br>
                 ------------------------------<br>
-                ${order.item}<br>
-                ${order.qty} x Rp${parseInt(order.price).toLocaleString('id-ID')} = Rp${parseInt(order.total).toLocaleString('id-ID')}<br>
+                ${order.items.map(it => `${it.item}<br>${it.qty} x Rp${it.price.toLocaleString('id-ID')} = Rp${it.total.toLocaleString('id-ID')}`).join('<br>')}<br>
                 ------------------------------<br>
-                <b>TOTAL: Rp${parseInt(order.total).toLocaleString('id-ID')}</b><br>
+                <b>GRAND TOTAL: Rp${order.grand_total.toLocaleString('id-ID')}</b><br>
                 Pembayaran: ${order.metode_bayar}<br>
             `;
             if (result.jatuh_tempo) {
