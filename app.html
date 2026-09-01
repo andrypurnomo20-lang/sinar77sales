@@ -373,14 +373,38 @@
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
-            if (name === 'outlet' && !document.getElementById('outlet_id').value) {
-                document.getElementById('join_date').value = new Date().toISOString().split('T')[0];
-                generateAutoID();
+            if (name === 'outlet') {
+                if (!document.getElementById('outlet_id').value) {
+                    document.getElementById('join_date').value = new Date().toISOString().split('T')[0];
+                    generateAutoID();
+                }
+                loadMasterData();
             }
             if ((name === 'visit' || name === 'order') && allOutlets.length === 0) {
                 loadOutlets();
             }
             loadSavedSalesRep();
+        }
+
+        // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
+        function loadMasterData() {
+            fetch(`${APPS_SCRIPT_URL}?action=master_data`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status !== 'success') return;
+                    isiDropdownDariMasterData('tipe', result.data['Tipe Outlet']);
+                    isiDropdownDariMasterData('kategori', result.data['Kategori Outlet'] || result.data['Kategori']);
+                    isiDropdownDariMasterData('status', result.data['Status Outlet'] || result.data['Status']);
+                })
+                .catch(() => {}); // kalau gagal, dropdown tetap pakai isi default yang sudah ada di HTML
+        }
+
+        function isiDropdownDariMasterData(selectId, values) {
+            if (!values || values.length === 0) return; // kolom tidak ditemukan / kosong -> biarkan default
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            select.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join('');
+            if (values.includes(currentValue)) select.value = currentValue;
         }
 
         function goHome() {
