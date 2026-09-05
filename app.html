@@ -268,6 +268,7 @@
                         <select id="order_outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                             <option value="">-- Memuat daftar outlet... --</option>
                         </select>
+                        <p id="order-tipe-info" class="text-[10px] text-slate-400 mt-1"></p>
                     </div>
 
                     <div>
@@ -276,29 +277,33 @@
                         <button type="button" onclick="gantiSalesRep('order')" id="order-ganti-nama-btn" class="hidden text-[10px] text-amber-600 font-semibold mt-1">Ganti nama</button>
                     </div>
 
+                    <!-- GPS Check-in -->
+                    <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="block text-xs font-bold uppercase text-emerald-900">Check-in Lokasi</label>
+                            <button type="button" id="order-gps-btn" onclick="getLocationGPS_order()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm">Check-in Sekarang</button>
+                        </div>
+                        <p id="order-gps-status" class="text-xs text-slate-500">Belum check-in. Wajib check-in dulu sebelum submit.</p>
+                        <input type="hidden" id="order_gps_checkin">
+                    </div>
+
                     <!-- Tambah Item ke Keranjang -->
                     <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
                         <label class="block text-xs font-bold uppercase text-slate-700">Tambah Produk</label>
                         <select id="item" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="pilihProduk()">
-                            <option value="">-- Pilih Produk --</option>
-                            <option value="Kecap Manis Jerigen 5L" data-harga="41000">Kecap Manis - Jerigen 5 Liter (Rp41.000)</option>
-                            <option value="Saus Lombok Jerigen 5L" data-harga="42500">Saus Lombok - Jerigen 5 Liter (Rp42.500)</option>
-                            <option value="Cuka Botol/Lusin" data-harga="61000">Cuka - Botol/Lusin, 12 Botol (Rp61.000)</option>
-                            <option value="Kecap Botol/Lusin" data-harga="64000">Kecap - Botol/Lusin, 12 Botol (Rp64.000)</option>
-                            <option value="Saos Botol/Lusin" data-harga="65500">Saos - Botol/Lusin, 12 Botol (Rp65.500)</option>
-                            <option value="Kecap Karton 20pcs" data-harga="79000">Kecap - Karton 20 pcs (Rp79.000)</option>
-                            <option value="Saos Karton 20pcs" data-harga="79000">Saos - Karton 20 pcs (Rp79.000)</option>
+                            <option value="">-- Pilih outlet dulu untuk lihat harga --</option>
                         </select>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Qty</label>
-                                <input type="number" id="qty" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" placeholder="0">
+                                <input type="number" id="qty" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" placeholder="0" oninput="previewHargaDiskon()">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Satuan</label>
                                 <input type="number" id="price" min="0" readonly class="w-full px-3 py-2.5 border border-slate-200 bg-slate-100 rounded-xl text-sm text-slate-600" placeholder="Otomatis">
                             </div>
                         </div>
+                        <p id="diskon-info" class="text-[10px] text-emerald-700 font-semibold hidden"></p>
                         <button type="button" onclick="tambahKeKeranjang()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-xl">
                             + Tambah ke Pesanan
                         </button>
@@ -513,7 +518,7 @@
                         if (newOutlet.sales_rep) simpanSalesRep(newOutlet.sales_rep);
                         showModal('Sukses', `Outlet ${newOutlet.outlet_name} tersimpan!`);
                         ['outlet_name','owner_name','phone_number','address','city','notes','gps_link','brand_kompetitor','harga_kompetitor'].forEach(id => document.getElementById(id).value = '');
-                        allOutlets = [];
+                        sessionStorage.removeItem('sinar77_outlets_cache'); // hapus cache biar outlet baru langsung muncul
                         generateAutoID();
                     } else {
                         showModal('Gagal', 'Error: ' + result.message);
@@ -522,12 +527,27 @@
                 .catch(err => { btn.disabled = false; txt.innerText = 'Simpan & Masuk Spreadsheet'; showModal('Gagal', 'Koneksi error: ' + err.message); });
         });
 
-        function loadOutlets() {
+        function loadOutlets(forceRefresh) {
+            // Cache di browser (sessionStorage) 3 menit, supaya buka form berkali-kali dalam sesi yang sama
+            // tidak perlu tunggu loading lagi. "forceRefresh" dipakai setelah outlet baru ditambahkan.
+            if (!forceRefresh) {
+                const cached = sessionStorage.getItem('sinar77_outlets_cache');
+                const cachedTime = sessionStorage.getItem('sinar77_outlets_cache_time');
+                if (cached && cachedTime && (Date.now() - Number(cachedTime) < 180000)) {
+                    allOutlets = JSON.parse(cached);
+                    renderOutletOptions(allOutlets, 'visit_outlet_select');
+                    renderOutletOptions(allOutlets, 'order_outlet_select');
+                    return;
+                }
+            }
+
             fetch(`${APPS_SCRIPT_URL}?action=list_outlets`)
                 .then(res => res.json())
                 .then(result => {
                     if (result.status === 'success') {
                         allOutlets = result.outlets;
+                        sessionStorage.setItem('sinar77_outlets_cache', JSON.stringify(allOutlets));
+                        sessionStorage.setItem('sinar77_outlets_cache_time', Date.now().toString());
                         renderOutletOptions(allOutlets, 'visit_outlet_select');
                         renderOutletOptions(allOutlets, 'order_outlet_select');
                     }
@@ -540,7 +560,7 @@
             if (!select) return;
             if (outlets.length === 0) { select.innerHTML = '<option value="">Tidak ada outlet ditemukan</option>'; return; }
             select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
         }
 
         document.getElementById('visit_outlet_search').addEventListener('input', function(e) {
@@ -562,6 +582,50 @@
                 link.classList.add('hidden'); link.classList.remove('flex');
             }
         });
+
+        // ============ PRICE LIST (harga per tipe outlet) ============
+        let priceListCache = null;
+
+        function loadPriceList(callback) {
+            if (priceListCache) { callback(); return; }
+            fetch(`${APPS_SCRIPT_URL}?action=price_list`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') priceListCache = result.products;
+                    else priceListCache = [];
+                    callback();
+                })
+                .catch(() => { priceListCache = []; callback(); });
+        }
+
+        document.getElementById('order_outlet_select').addEventListener('change', function(e) {
+            const sel = e.target.options[e.target.selectedIndex];
+            const tipe = sel.dataset.tipe || '';
+            document.getElementById('order-tipe-info').innerText = tipe ? `Tipe outlet: ${tipe} — harga produk menyesuaikan otomatis.` : '';
+
+            loadPriceList(function() {
+                renderProdukDropdown(tipe);
+            });
+        });
+
+        function kolomHargaUntukTipe(tipe) {
+            if (tipe === 'Grosir') return 'harga_grosir';
+            if (tipe === 'Pemakai langsung') return 'harga_pemakai_langsung';
+            return 'harga_retail'; // default: Retail & tipe lain yang belum diatur, pakai harga Retail
+        }
+
+        function renderProdukDropdown(tipe) {
+            const select = document.getElementById('item');
+            if (!priceListCache || priceListCache.length === 0) {
+                select.innerHTML = '<option value="">Daftar harga belum tersedia, hubungi admin</option>';
+                return;
+            }
+            const kolom = kolomHargaUntukTipe(tipe);
+            select.innerHTML = '<option value="">-- Pilih Produk --</option>' +
+                priceListCache.map(p => `<option value="${p.nama}" data-harga="${p[kolom]}">${p.nama} (Rp${p[kolom].toLocaleString('id-ID')}/${p.satuan})</option>`).join('');
+            document.getElementById('price').value = '';
+            document.getElementById('qty').value = '';
+        }
 
         function getLocationGPS_visit() {
             if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
@@ -637,6 +701,26 @@
             const sel = document.getElementById('item');
             const harga = sel.options[sel.selectedIndex]?.dataset.harga || '';
             document.getElementById('price').value = harga;
+            previewHargaDiskon();
+        }
+
+        // Diskon bertingkat: qty 25-49 => diskon Rp1.000/unit, qty 50+ => diskon Rp2.000/unit
+        function hitungDiskonPerUnit(qty) {
+            if (qty >= 50) return 2000;
+            if (qty >= 25) return 1000;
+            return 0;
+        }
+
+        function previewHargaDiskon() {
+            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const info = document.getElementById('diskon-info');
+            const diskon = hitungDiskonPerUnit(qty);
+            if (diskon > 0) {
+                info.innerText = `Diskon otomatis Rp${diskon.toLocaleString('id-ID')}/unit diterapkan untuk qty ${qty}.`;
+                info.classList.remove('hidden');
+            } else {
+                info.classList.add('hidden');
+            }
         }
 
         // ============ KERANJANG ORDER (MULTI-ITEM) ============
@@ -646,18 +730,22 @@
             const sel = document.getElementById('item');
             const itemName = sel.value;
             const qty = parseInt(document.getElementById('qty').value) || 0;
-            const price = parseInt(document.getElementById('price').value) || 0;
+            const hargaAsli = parseInt(document.getElementById('price').value) || 0;
 
             if (!itemName) { showModal('Info', 'Pilih produk dulu.'); return; }
             if (qty < 1) { showModal('Info', 'Isi qty minimal 1.'); return; }
 
-            cart.push({ item: itemName, qty: qty, price: price, total: qty * price });
+            const diskon = hitungDiskonPerUnit(qty);
+            const hargaSetelahDiskon = hargaAsli - diskon;
+
+            cart.push({ item: itemName, qty: qty, price: hargaSetelahDiskon, harga_asli: hargaAsli, diskon_per_unit: diskon, total: qty * hargaSetelahDiskon });
             renderCart();
 
             // Reset input tambah produk, siap untuk item berikutnya
             sel.value = '';
             document.getElementById('qty').value = '';
             document.getElementById('price').value = '';
+            document.getElementById('diskon-info').classList.add('hidden');
         }
 
         function hapusDariKeranjang(index) {
@@ -676,7 +764,7 @@
                 <div class="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-2.5 text-xs">
                     <div>
                         <div class="font-semibold text-slate-800">${c.item}</div>
-                        <div class="text-slate-500">${c.qty} x Rp${c.price.toLocaleString('id-ID')} = Rp${c.total.toLocaleString('id-ID')}</div>
+                        <div class="text-slate-500">${c.qty} x Rp${c.price.toLocaleString('id-ID')}${c.diskon_per_unit > 0 ? ` <span class="text-emerald-600">(diskon Rp${c.diskon_per_unit.toLocaleString('id-ID')}/unit)</span>` : ''} = Rp${c.total.toLocaleString('id-ID')}</div>
                     </div>
                     <button type="button" onclick="hapusDariKeranjang(${i})" class="text-red-500 font-bold px-2">✕</button>
                 </div>
@@ -694,13 +782,32 @@
             document.getElementById('kredit-info').classList.toggle('hidden', !isKredit);
         }
 
+        function getLocationGPS_order() {
+            if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
+            const btn = document.getElementById('order-gps-btn');
+            btn.disabled = true;
+            document.getElementById('order-gps-status').innerText = 'Mendeteksi lokasi...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('order_gps_checkin').value = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    document.getElementById('order-gps-status').innerText = '✓ Check-in berhasil, lokasi terkunci.';
+                    document.getElementById('order-gps-status').className = 'text-xs text-emerald-700 font-semibold';
+                    btn.disabled = false;
+                },
+                () => { document.getElementById('order-gps-status').innerText = 'Gagal ambil lokasi. Coba lagi.'; btn.disabled = false; },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
         document.getElementById('order-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const sel = document.getElementById('order_outlet_select');
             const outletId = sel.value;
             const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+            const gpsCheckin = document.getElementById('order_gps_checkin').value;
 
             if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+            if (!gpsCheckin) { showModal('Gagal', 'Wajib check-in lokasi dulu sebelum submit order.'); return; }
             if (cart.length === 0) { showModal('Gagal', 'Tambahkan minimal 1 produk ke pesanan.'); return; }
 
             const salesRep = document.getElementById('order_sales_rep').value.trim();
@@ -713,7 +820,8 @@
                 sales_rep: salesRep,
                 items: cart,
                 grand_total: grandTotal,
-                metode_bayar: document.getElementById('metode_bayar').value
+                metode_bayar: document.getElementById('metode_bayar').value,
+                gps_checkin: gpsCheckin
             };
 
             const btn = document.getElementById('order-submit-btn');
@@ -726,12 +834,19 @@
                     btn.disabled = false; txt.innerText = 'Simpan Order';
                     if (result.status === 'success') {
                         simpanSalesRep(salesRep);
+                        let msg = `Order tersimpan sebagai ${result.jenis_order}!`;
+                        if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
+                        else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
                         tampilkanNota(newOrder, result);
-                        showModal('Sukses', `Order tersimpan sebagai ${result.jenis_order}!`);
+                        showModal('Sukses', msg);
                         document.getElementById('order-form').reset();
                         cart = [];
                         renderCart();
                         document.getElementById('kredit-info').classList.add('hidden');
+                        document.getElementById('order_gps_checkin').value = '';
+                        document.getElementById('order-gps-status').innerText = 'Belum check-in. Wajib check-in dulu sebelum submit.';
+                        document.getElementById('order-gps-status').className = 'text-xs text-slate-500';
+                        document.getElementById('order-tipe-info').innerText = '';
                         loadSavedSalesRep();
                     } else {
                         showModal('Gagal', 'Error: ' + result.message);
