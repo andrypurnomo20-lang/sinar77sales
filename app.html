@@ -453,7 +453,11 @@
         }
 
         function generateAutoID() {
-            document.getElementById('outlet_id').value = `OUT-${Math.floor(1000 + Math.random() * 9000)}`;
+            // Pakai timestamp + angka acak supaya praktis tidak mungkin 2 outlet beda dapat ID sama
+            // (ID lama cuma 4 digit acak, terlalu rawan tabrakan begitu outlet sudah ratusan).
+            const timestamp = Date.now().toString().slice(-6);
+            const rand = Math.floor(10 + Math.random() * 90);
+            document.getElementById('outlet_id').value = `OUT-${timestamp}${rand}`;
         }
 
         function getLocationGPS_outlet() {
@@ -507,6 +511,7 @@
                 harga_kompetitor: document.getElementById('harga_kompetitor').value.trim()
             };
             if (!newOutlet.outlet_name) { showModal('Gagal', 'Nama outlet wajib diisi.'); return; }
+            if (!newOutlet.gps) { showModal('Gagal', 'Wajib ambil GPS dulu sebelum simpan outlet — klik tombol "Ambil GPS HP Saya" di atas.'); return; }
 
             const btn = document.getElementById('outlet-submit-btn');
             const txt = document.getElementById('outlet-submit-text');
@@ -565,13 +570,60 @@
                 outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
         }
 
+        // ============ PENCARIAN OUTLET TOLERAN TYPO (FUZZY SEARCH) ============
+        // Supaya ketik "fatimah" tetap ketemu "Toko Hj Fatima" walau ejaannya beda dikit.
+        function levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    dp[i][j] = a[i - 1] === b[j - 1]
+                        ? dp[i - 1][j - 1]
+                        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+            return dp[m][n];
+        }
+
+        // Skor kecocokan: 0 = cocok persis (prioritas tertinggi), makin besar = makin beda.
+        // Cek juga per-kata (bukan cuma nama lengkap), supaya "fatimah" ketemu kata "fatima"
+        // di dalam "toko hj fatima", bukan cuma kalau nama tokonya PERSIS "fatima" saja.
+        function skorKecocokanOutlet(outlet, keyword) {
+            const kw = keyword.toLowerCase().trim();
+            const name = outlet.name.toLowerCase();
+            const city = (outlet.city || '').toLowerCase();
+            if (name.includes(kw) || city.includes(kw)) return 0;
+
+            const kataKata = (name + ' ' + city).split(/\s+/).filter(Boolean);
+            let terbaik = Infinity;
+            for (const kata of kataKata) {
+                const jarak = levenshtein(kw, kata);
+                if (jarak < terbaik) terbaik = jarak;
+            }
+            return terbaik;
+        }
+
+        function cariOutlet(keyword) {
+            const kw = keyword.trim();
+            if (!kw) return allOutlets;
+
+            // Toleransi typo: makin panjang kata yang diketik, makin banyak perbedaan huruf yang ditoleransi
+            const toleransi = Math.max(1, Math.ceil(kw.length * 0.3));
+
+            return allOutlets
+                .map(o => ({ outlet: o, skor: skorKecocokanOutlet(o, kw) }))
+                .filter(x => x.skor <= toleransi)
+                .sort((a, b) => a.skor - b.skor) // paling mirip muncul paling atas
+                .map(x => x.outlet);
+        }
+
         document.getElementById('visit_outlet_search').addEventListener('input', function(e) {
-            const kw = e.target.value.toLowerCase();
-            renderOutletOptions(allOutlets.filter(o => o.name.toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw)), 'visit_outlet_select');
+            renderOutletOptions(cariOutlet(e.target.value), 'visit_outlet_select');
         });
         document.getElementById('order_outlet_search').addEventListener('input', function(e) {
-            const kw = e.target.value.toLowerCase();
-            renderOutletOptions(allOutlets.filter(o => o.name.toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw)), 'order_outlet_select');
+            renderOutletOptions(cariOutlet(e.target.value), 'order_outlet_select');
         });
 
         document.getElementById('visit_outlet_select').addEventListener('change', function(e) {
@@ -682,6 +734,7 @@
                     if (result.status === 'success') {
                         if (newVisit.sales_rep) simpanSalesRep(newVisit.sales_rep);
                         let msg = `Kunjungan ke ${newVisit.outlet_name} tersimpan!`;
+                        if (result.gps_ditambal) msg += ' Outlet ini sebelumnya belum punya titik GPS — sudah otomatis dilengkapi dari lokasi check-in Anda barusan.';
                         if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
                         else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
                         if (newVisit.status_kunjungan === 'Order') msg += ' Jangan lupa catat transaksinya di menu Form Order.';
