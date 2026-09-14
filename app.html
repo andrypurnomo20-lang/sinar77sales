@@ -38,6 +38,51 @@
 
         <!-- ============ VIEW: HOME MENU ============ -->
         <div id="view-home" class="view active">
+
+            <!-- Kartu Progres Hari Ini -->
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-5 rounded-2xl shadow-md mt-2 mb-3">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-xs uppercase tracking-wide text-slate-300">Progres Hari Ini</div>
+                    <div id="progress-sales-name" class="text-xs text-slate-400"></div>
+                </div>
+
+                <div id="progress-loading" class="text-xs text-slate-400">Memuat progres...</div>
+
+                <div id="progress-content" class="hidden space-y-3">
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-sm">Kunjungan</span>
+                            <span class="text-sm font-bold"><span id="pv-kunjungan">0</span> / <span id="pv-target">20</span> (<span id="pv-persen">0</span>%)</span>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-2.5">
+                            <div id="pv-bar" class="bg-emerald-400 h-2.5 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="bg-white/10 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-300 uppercase">Toko Transaksi</div>
+                            <div class="text-lg font-bold" id="pv-outlet-transaksi">0</div>
+                        </div>
+                        <div class="bg-white/10 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-300 uppercase">Konversi</div>
+                            <div class="text-lg font-bold"><span id="pv-konversi">0</span>%</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/10 rounded-xl p-3">
+                        <div class="text-[10px] text-slate-300 uppercase mb-1">Total Omzet Hari Ini</div>
+                        <div class="text-xl font-bold" id="pv-omzet">Rp 0</div>
+                        <div class="flex justify-between mt-2 text-xs text-slate-300">
+                            <span>Cash: <b class="text-white" id="pv-cash">Rp 0</b></span>
+                            <span>Kredit: <b class="text-white" id="pv-kredit">Rp 0</b></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="progress-empty" class="hidden text-xs text-slate-400">Isi salah satu form dulu supaya nama sales tercatat, baru progres bisa ditampilkan.</div>
+            </div>
+
             <div class="grid grid-cols-1 gap-3 mt-2">
                 <button onclick="showView('outlet')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-indigo-400 transition">
                     <div class="bg-indigo-100 p-3 rounded-xl">
@@ -377,6 +422,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             loadOutlets();
             loadPriceList(function() {}); // preload sekalian, supaya pilih outlet di Form Order langsung dapat harga
+            loadTodayProgress();
         });
 
         function showView(name) {
@@ -429,6 +475,46 @@
             document.getElementById('back-btn').classList.add('hidden');
             document.getElementById('header-title').innerText = 'Sinar77 Sales App';
             document.getElementById('header-sub').innerText = 'Pilih menu di bawah';
+            loadTodayProgress(); // refresh progres tiap kali balik ke menu utama, misal habis submit form
+        }
+
+        // Kartu Progres Hari Ini di menu utama
+        function loadTodayProgress() {
+            const savedName = localStorage.getItem('sinar77_sales_rep');
+            const loading = document.getElementById('progress-loading');
+            const content = document.getElementById('progress-content');
+            const empty = document.getElementById('progress-empty');
+
+            if (!savedName) {
+                loading.classList.add('hidden');
+                content.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            empty.classList.add('hidden');
+            document.getElementById('progress-sales-name').innerText = savedName;
+
+            fetch(`${APPS_SCRIPT_URL}?action=today_progress&sales_rep=${encodeURIComponent(savedName)}`)
+                .then(res => res.json())
+                .then(result => {
+                    loading.classList.add('hidden');
+                    if (result.status !== 'success') { empty.classList.remove('hidden'); return; }
+
+                    content.classList.remove('hidden');
+                    document.getElementById('pv-kunjungan').innerText = result.total_kunjungan;
+                    document.getElementById('pv-target').innerText = result.target_kunjungan;
+                    document.getElementById('pv-persen').innerText = result.persen_target;
+                    document.getElementById('pv-bar').style.width = Math.min(result.persen_target, 100) + '%';
+                    document.getElementById('pv-outlet-transaksi').innerText = result.jumlah_outlet_transaksi;
+                    document.getElementById('pv-konversi').innerText = result.konversi_persen;
+                    document.getElementById('pv-omzet').innerText = 'Rp ' + result.total_omzet.toLocaleString('id-ID');
+                    document.getElementById('pv-cash').innerText = 'Rp ' + result.total_cash.toLocaleString('id-ID');
+                    document.getElementById('pv-kredit').innerText = 'Rp ' + result.total_kredit.toLocaleString('id-ID');
+                })
+                .catch(() => { loading.classList.add('hidden'); empty.classList.remove('hidden'); });
         }
 
         function loadSavedSalesRep() {
