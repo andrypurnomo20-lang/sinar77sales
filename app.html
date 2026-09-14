@@ -94,11 +94,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Owner Name</label>
-                            <input type="text" id="owner_name" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Pemilik">
+                            <input type="text" id="owner_name" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Pemilik">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Phone Number</label>
-                            <input type="tel" id="phone_number" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="08xxxxxxxxxx">
+                            <input type="tel" id="phone_number" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="08xxxxxxxxxx">
                         </div>
                     </div>
 
@@ -110,18 +110,18 @@
                                 Ambil GPS HP Saya
                             </button>
                         </div>
-                        <textarea id="address" rows="2" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Alamat otomatis terisi setelah ambil GPS..."></textarea>
+                        <textarea id="address" rows="2" required class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Alamat otomatis terisi setelah ambil GPS..."></textarea>
                         <input type="text" id="gps_link" class="w-full px-3 py-2 border border-slate-300 bg-white rounded-xl text-xs font-mono text-slate-600" placeholder="Koordinat Maps otomatis terisi...">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">City / Area</label>
-                            <input type="text" id="city" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Kota">
+                            <input type="text" id="city" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Kota">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipe Outlet</label>
-                            <select id="tipe" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <select id="tipe" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                                 <option value="Retail">Retail</option>
                                 <option value="Grosir">Grosir</option>
                                 <option value="Modern Market">Modern Market</option>
@@ -133,7 +133,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kategori</label>
-                            <select id="kategori" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <select id="kategori" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                                 <option value="Platinum">Platinum</option>
                                 <option value="Gold">Gold</option>
                                 <option value="Silver" selected>Silver</option>
@@ -142,7 +142,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Status</label>
-                            <select id="status" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <select id="status" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                                 <option value="Active" selected>Active</option>
                                 <option value="Follow-up">Follow-up</option>
                                 <option value="Dormant">Dormant</option>
@@ -154,7 +154,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
-                            <input type="text" id="outlet_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Sales">
+                            <input type="text" id="outlet_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Sales">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Join Date</label>
@@ -167,11 +167,11 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Brand Dipakai Sekarang</label>
-                                <input type="text" id="brand_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Contoh: ABC">
+                                <input type="text" id="brand_kompetitor" required class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="Contoh: ABC">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga Beli Saat Ini</label>
-                                <input type="text" id="harga_kompetitor" class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="25000/botol">
+                                <input type="text" id="harga_kompetitor" required class="w-full px-3 py-2.5 border border-slate-300 bg-white rounded-xl text-sm" placeholder="25000/botol">
                             </div>
                         </div>
                     </div>
