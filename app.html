@@ -194,10 +194,11 @@
                 <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Form Kunjungan</h2>
 
                 <form id="visit-form" class="space-y-3.5">
-                    <div>
+                    <div class="relative">
                         <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
-                        <input type="text" id="visit_outlet_search" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-2" placeholder="Ketik nama outlet untuk cari...">
-                        <select id="visit_outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <input type="text" id="visit_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                        <div id="visit_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                        <select id="visit_outlet_select" required class="hidden">
                             <option value="">-- Memuat daftar outlet... --</option>
                         </select>
                         <a id="visit-navigate-link" href="#" target="_blank" class="hidden mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm items-center justify-center transition">
@@ -262,10 +263,11 @@
                 <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Form Order</h2>
 
                 <form id="order-form" class="space-y-3.5">
-                    <div>
+                    <div class="relative">
                         <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
-                        <input type="text" id="order_outlet_search" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-2" placeholder="Ketik nama outlet untuk cari...">
-                        <select id="order_outlet_select" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <input type="text" id="order_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                        <div id="order_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                        <select id="order_outlet_select" required class="hidden">
                             <option value="">-- Memuat daftar outlet... --</option>
                         </select>
                         <p id="order-tipe-info" class="text-[10px] text-slate-400 mt-1"></p>
@@ -619,11 +621,58 @@
                 .map(x => x.outlet);
         }
 
+        // ============ SUGESTI OUTLET (autocomplete) ============
+        // Menampilkan daftar klik-langsung di bawah kolom ketik, tanpa perlu buka dropdown terpisah.
+        function renderSuggestions(outlets, containerId, inputId, selectId) {
+            const container = document.getElementById(containerId);
+            if (outlets.length === 0) {
+                container.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Tidak ditemukan</div>';
+                container.classList.remove('hidden');
+                return;
+            }
+            container.innerHTML = outlets.slice(0, 8).map(o => `
+                <div class="suggestion-item px-3 py-2.5 text-sm hover:bg-slate-100 cursor-pointer border-b border-slate-100 last:border-0" data-id="${o.id}">
+                    <div class="font-medium text-slate-800">${o.name}</div>
+                    <div class="text-[11px] text-slate-400">${o.city || 'Tanpa Kota'}</div>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+            container.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('mousedown', function(ev) {
+                    ev.preventDefault(); // supaya klik ini terjadi SEBELUM input kehilangan fokus (blur)
+                    pilihOutletDariSaran(this.dataset.id, inputId, selectId, containerId);
+                });
+            });
+        }
+
+        function pilihOutletDariSaran(outletId, inputId, selectId, containerId) {
+            const outlet = allOutlets.find(o => o.id === outletId);
+            if (!outlet) return;
+            document.getElementById(inputId).value = `${outlet.name} (${outlet.city || 'Tanpa Kota'})`;
+            const select = document.getElementById(selectId);
+            select.value = outletId;
+            select.dispatchEvent(new Event('change')); // supaya logic lain (rute, harga per tipe) tetap jalan otomatis
+            document.getElementById(containerId).classList.add('hidden');
+        }
+
         document.getElementById('visit_outlet_search').addEventListener('input', function(e) {
-            renderOutletOptions(cariOutlet(e.target.value), 'visit_outlet_select');
+            const hasil = cariOutlet(e.target.value);
+            if (!e.target.value.trim()) { document.getElementById('visit_outlet_suggestions').classList.add('hidden'); return; }
+            renderSuggestions(hasil, 'visit_outlet_suggestions', 'visit_outlet_search', 'visit_outlet_select');
         });
         document.getElementById('order_outlet_search').addEventListener('input', function(e) {
-            renderOutletOptions(cariOutlet(e.target.value), 'order_outlet_select');
+            const hasil = cariOutlet(e.target.value);
+            if (!e.target.value.trim()) { document.getElementById('order_outlet_suggestions').classList.add('hidden'); return; }
+            renderSuggestions(hasil, 'order_outlet_suggestions', 'order_outlet_search', 'order_outlet_select');
+        });
+        // Tutup daftar sugesti kalau user klik di luar area input/sugesti
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#visit_outlet_search') && !e.target.closest('#visit_outlet_suggestions')) {
+                document.getElementById('visit_outlet_suggestions').classList.add('hidden');
+            }
+            if (!e.target.closest('#order_outlet_search') && !e.target.closest('#order_outlet_suggestions')) {
+                document.getElementById('order_outlet_suggestions').classList.add('hidden');
+            }
         });
 
         document.getElementById('visit_outlet_select').addEventListener('change', function(e) {
@@ -652,13 +701,16 @@
                 .catch(() => { priceListCache = []; callback(); });
         }
 
+        let currentOutletTipe = '';
+
         document.getElementById('order_outlet_select').addEventListener('change', function(e) {
             const sel = e.target.options[e.target.selectedIndex];
-            const tipe = sel.dataset.tipe || '';
-            document.getElementById('order-tipe-info').innerText = tipe ? `Tipe outlet: ${tipe} — harga produk menyesuaikan otomatis.` : '';
+            currentOutletTipe = sel.dataset.tipe || '';
+            document.getElementById('order-tipe-info').innerText = currentOutletTipe ? `Tipe outlet: ${currentOutletTipe} — harga produk menyesuaikan otomatis.` : '';
 
             loadPriceList(function() {
-                renderProdukDropdown(tipe);
+                renderProdukDropdown(currentOutletTipe);
+                if (cart.length > 0) recalcAllDiscounts(); // outlet diganti setelah keranjang terisi -> harga perlu dihitung ulang
             });
         });
 
@@ -774,14 +826,29 @@
             return cart.reduce((sum, c) => sum + c.qty, 0);
         }
 
+        // Kalau outlet Retail tapi total qty gabungan >=10, harga otomatis "naik kelas" pakai harga Grosir.
+        function kolomHargaEfektif(tipe, totalQtyGabungan) {
+            if (tipe === 'Retail' && totalQtyGabungan >= 10) return 'harga_grosir';
+            return kolomHargaUntukTipe(tipe);
+        }
+
         // Preview sebelum produk ditambahkan: hitung proyeksi total qty (isi keranjang + qty yang sedang diketik)
         function previewHargaDiskon() {
             const qtyInput = parseInt(document.getElementById('qty').value) || 0;
             const proyeksiTotalQty = totalQtyKeranjang() + qtyInput;
             const info = document.getElementById('diskon-info');
+            const pesan = [];
+
+            if (currentOutletTipe === 'Retail' && proyeksiTotalQty >= 10) {
+                pesan.push(`Total qty pesanan akan jadi ${proyeksiTotalQty} unit → harga otomatis naik kelas jadi harga Grosir untuk SEMUA item.`);
+            }
             const diskon = hitungDiskonPerUnit(proyeksiTotalQty);
             if (diskon > 0) {
-                info.innerText = `Total qty pesanan akan jadi ${proyeksiTotalQty} unit → diskon Rp${diskon.toLocaleString('id-ID')}/unit berlaku untuk SEMUA item (Cash).`;
+                pesan.push(`Diskon Rp${diskon.toLocaleString('id-ID')}/unit berlaku untuk SEMUA item (Cash).`);
+            }
+
+            if (pesan.length > 0) {
+                info.innerText = pesan.join(' ');
                 info.classList.remove('hidden');
             } else {
                 info.classList.add('hidden');
@@ -812,17 +879,26 @@
             document.getElementById('diskon-info').classList.add('hidden');
         }
 
-        // Hitung ulang diskon untuk SEMUA item di keranjang berdasarkan total qty gabungan saat ini.
-        // Dipanggil setiap kali keranjang berubah (tambah/hapus item) ATAU metode pembayaran diganti.
+        // Hitung ulang harga SEMUA item di keranjang berdasarkan total qty gabungan saat ini:
+        // 1) Tentukan kolom harga dasar (Retail/Grosir/Pemakai Langsung, atau "naik kelas" ke Grosir kalau outlet Retail & qty>=10)
+        // 2) Terapkan diskon Cash 25-49/50+ di atas harga dasar itu
+        // Dipanggil setiap kali keranjang berubah (tambah/hapus item), metode pembayaran diganti, atau outlet diganti.
         function recalcAllDiscounts() {
             const totalQty = totalQtyKeranjang();
+            const kolom = kolomHargaEfektif(currentOutletTipe, totalQty);
             const diskon = hitungDiskonPerUnit(totalQty);
-            cart = cart.map(c => ({
-                ...c,
-                diskon_per_unit: diskon,
-                price: c.harga_asli - diskon,
-                total: c.qty * (c.harga_asli - diskon)
-            }));
+
+            cart = cart.map(c => {
+                const produk = (priceListCache || []).find(p => p.nama === c.item);
+                const hargaDasar = produk ? produk[kolom] : c.harga_asli; // fallback ke harga lama kalau produk tidak ketemu
+                return {
+                    ...c,
+                    harga_asli: hargaDasar,
+                    diskon_per_unit: diskon,
+                    price: hargaDasar - diskon,
+                    total: c.qty * (hargaDasar - diskon)
+                };
+            });
             renderCart();
         }
 
@@ -851,11 +927,12 @@
 
             const totalQty = totalQtyKeranjang();
             const diskonAktif = cart[0].diskon_per_unit;
-            if (totalQtyInfo) {
-                totalQtyInfo.innerHTML = diskonAktif > 0
-                    ? `Total qty gabungan: <b>${totalQty} unit</b> — diskon <b>Rp${diskonAktif.toLocaleString('id-ID')}/unit</b> berlaku untuk semua item di bawah.`
-                    : `Total qty gabungan: <b>${totalQty} unit</b> — belum mencapai batas minimal diskon (25 unit).`;
-            }
+            const naikKelas = currentOutletTipe === 'Retail' && totalQty >= 10;
+            let infoParts = [`Total qty gabungan: <b>${totalQty} unit</b>`];
+            if (naikKelas) infoParts.push('harga otomatis naik kelas ke <b>Grosir</b>');
+            if (diskonAktif > 0) infoParts.push(`diskon <b>Rp${diskonAktif.toLocaleString('id-ID')}/unit</b> (Cash)`);
+            if (!naikKelas && diskonAktif === 0) infoParts.push('belum mencapai batas minimal diskon/naik kelas');
+            if (totalQtyInfo) totalQtyInfo.innerHTML = infoParts.join(' — ');
 
             container.innerHTML = cart.map((c, i) => `
                 <div class="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-2.5 text-xs">
@@ -932,6 +1009,7 @@
                     if (result.status === 'success') {
                         simpanSalesRep(salesRep);
                         let msg = `Order tersimpan sebagai ${result.jenis_order}!`;
+                        if (result.gps_ditambal) msg += ' Outlet ini sebelumnya belum punya titik GPS — sudah otomatis dilengkapi dari lokasi check-in order ini.';
                         if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
                         else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
                         tampilkanNota(newOrder, result);
