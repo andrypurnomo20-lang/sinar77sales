@@ -287,6 +287,19 @@
                         <input type="hidden" id="order_gps_checkin">
                     </div>
 
+                    <!-- Metode Pembayaran (dipilih SEBELUM tambah produk, karena diskon Cash beda dengan Kredit) -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran *</label>
+                        <select id="metode_bayar" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="toggleKredit(); recalcCartDiskon();">
+                            <option value="Cash">Cash</option>
+                            <option value="Kredit">Kredit (7 hari)</option>
+                        </select>
+                    </div>
+
+                    <div id="kredit-info" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                        Kredit 7 hari — jatuh tempo otomatis dihitung dari tanggal hari ini saat submit. Wajib ada bukti tanda tangan kertas untuk kredit ini. <b>Diskon qty tidak berlaku untuk Kredit.</b>
+                    </div>
+
                     <!-- Tambah Item ke Keranjang -->
                     <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
                         <label class="block text-xs font-bold uppercase text-slate-700">Tambah Produk</label>
@@ -312,6 +325,7 @@
                     <!-- Daftar Item di Keranjang -->
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Daftar Pesanan</label>
+                        <p id="cart-total-qty-info" class="text-[11px] text-slate-500 mb-2"></p>
                         <div id="cart-list" class="space-y-2">
                             <p class="text-xs text-slate-400 text-center py-3">Belum ada produk ditambahkan.</p>
                         </div>
@@ -320,18 +334,6 @@
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
                         <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Grand Total</label>
                         <div id="total_display" class="text-lg font-bold text-slate-900">Rp 0</div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran *</label>
-                        <select id="metode_bayar" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="toggleKredit()">
-                            <option value="Cash">Cash</option>
-                            <option value="Kredit">Kredit (7 hari)</option>
-                        </select>
-                    </div>
-
-                    <div id="kredit-info" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                        Kredit 7 hari — jatuh tempo otomatis dihitung dari tanggal hari ini saat submit. Wajib ada bukti tanda tangan kertas untuk kredit ini.
                     </div>
 
                     <button type="submit" id="order-submit-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
@@ -704,19 +706,29 @@
             previewHargaDiskon();
         }
 
-        // Diskon bertingkat: qty 25-49 => diskon Rp1.000/unit, qty 50+ => diskon Rp2.000/unit
-        function hitungDiskonPerUnit(qty) {
-            if (qty >= 50) return 2000;
-            if (qty >= 25) return 1000;
+        // Diskon bertingkat berdasarkan TOTAL qty gabungan semua produk dalam 1 transaksi
+        // (bukan per jenis produk) — qty gabungan 25-49 => Rp1.000/unit, 50+ => Rp2.000/unit.
+        // HANYA berlaku untuk Cash, Kredit tidak dapat diskon.
+        function hitungDiskonPerUnit(totalQtyGabungan) {
+            const metode = document.getElementById('metode_bayar').value;
+            if (metode !== 'Cash') return 0;
+            if (totalQtyGabungan >= 50) return 2000;
+            if (totalQtyGabungan >= 25) return 1000;
             return 0;
         }
 
+        function totalQtyKeranjang() {
+            return cart.reduce((sum, c) => sum + c.qty, 0);
+        }
+
+        // Preview sebelum produk ditambahkan: hitung proyeksi total qty (isi keranjang + qty yang sedang diketik)
         function previewHargaDiskon() {
-            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const qtyInput = parseInt(document.getElementById('qty').value) || 0;
+            const proyeksiTotalQty = totalQtyKeranjang() + qtyInput;
             const info = document.getElementById('diskon-info');
-            const diskon = hitungDiskonPerUnit(qty);
+            const diskon = hitungDiskonPerUnit(proyeksiTotalQty);
             if (diskon > 0) {
-                info.innerText = `Diskon otomatis Rp${diskon.toLocaleString('id-ID')}/unit diterapkan untuk qty ${qty}.`;
+                info.innerText = `Total qty pesanan akan jadi ${proyeksiTotalQty} unit → diskon Rp${diskon.toLocaleString('id-ID')}/unit berlaku untuk SEMUA item (Cash).`;
                 info.classList.remove('hidden');
             } else {
                 info.classList.add('hidden');
@@ -735,11 +747,10 @@
             if (!itemName) { showModal('Info', 'Pilih produk dulu.'); return; }
             if (qty < 1) { showModal('Info', 'Isi qty minimal 1.'); return; }
 
-            const diskon = hitungDiskonPerUnit(qty);
-            const hargaSetelahDiskon = hargaAsli - diskon;
-
-            cart.push({ item: itemName, qty: qty, price: hargaSetelahDiskon, harga_asli: hargaAsli, diskon_per_unit: diskon, total: qty * hargaSetelahDiskon });
-            renderCart();
+            // Simpan dulu harga asli tanpa diskon — diskon dihitung ulang untuk SELURUH keranjang
+            // begitu item ini ditambahkan, karena totalnya berubah.
+            cart.push({ item: itemName, qty: qty, harga_asli: hargaAsli, price: hargaAsli, diskon_per_unit: 0, total: qty * hargaAsli });
+            recalcAllDiscounts();
 
             // Reset input tambah produk, siap untuk item berikutnya
             sel.value = '';
@@ -748,18 +759,51 @@
             document.getElementById('diskon-info').classList.add('hidden');
         }
 
+        // Hitung ulang diskon untuk SEMUA item di keranjang berdasarkan total qty gabungan saat ini.
+        // Dipanggil setiap kali keranjang berubah (tambah/hapus item) ATAU metode pembayaran diganti.
+        function recalcAllDiscounts() {
+            const totalQty = totalQtyKeranjang();
+            const diskon = hitungDiskonPerUnit(totalQty);
+            cart = cart.map(c => ({
+                ...c,
+                diskon_per_unit: diskon,
+                price: c.harga_asli - diskon,
+                total: c.qty * (c.harga_asli - diskon)
+            }));
+            renderCart();
+        }
+
+        // Dipanggil saat sales GANTI metode pembayaran setelah beberapa produk sudah masuk keranjang.
+        function recalcCartDiskon() {
+            if (cart.length === 0) return;
+            recalcAllDiscounts();
+            showModal('Info', 'Metode pembayaran diubah — harga & diskon di keranjang sudah disesuaikan otomatis.');
+        }
+
         function hapusDariKeranjang(index) {
             cart.splice(index, 1);
-            renderCart();
+            recalcAllDiscounts(); // qty gabungan berubah setelah hapus, diskon perlu dihitung ulang untuk sisa item
         }
 
         function renderCart() {
             const container = document.getElementById('cart-list');
+            const totalQtyInfo = document.getElementById('cart-total-qty-info');
+
             if (cart.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Belum ada produk ditambahkan.</p>';
+                if (totalQtyInfo) totalQtyInfo.innerHTML = '';
                 hitungGrandTotal();
                 return;
             }
+
+            const totalQty = totalQtyKeranjang();
+            const diskonAktif = cart[0].diskon_per_unit;
+            if (totalQtyInfo) {
+                totalQtyInfo.innerHTML = diskonAktif > 0
+                    ? `Total qty gabungan: <b>${totalQty} unit</b> — diskon <b>Rp${diskonAktif.toLocaleString('id-ID')}/unit</b> berlaku untuk semua item di bawah.`
+                    : `Total qty gabungan: <b>${totalQty} unit</b> — belum mencapai batas minimal diskon (25 unit).`;
+            }
+
             container.innerHTML = cart.map((c, i) => `
                 <div class="flex justify-between items-center bg-white border border-slate-200 rounded-xl p-2.5 text-xs">
                     <div>
