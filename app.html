@@ -372,6 +372,13 @@
 
         let allOutlets = [];
 
+        // Muat daftar outlet dari awal begitu halaman dibuka (di menu utama), di background —
+        // supaya begitu sales klik masuk ke Visit Log/Order, datanya sudah siap, tidak perlu nunggu lagi.
+        window.addEventListener('DOMContentLoaded', function() {
+            loadOutlets();
+            loadPriceList(function() {}); // preload sekalian, supaya pilih outlet di Form Order langsung dapat harga
+        });
+
         function showView(name) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-' + name).classList.add('active');
@@ -546,6 +553,7 @@
                     allOutlets = JSON.parse(cached);
                     renderOutletOptions(allOutlets, 'visit_outlet_select');
                     renderOutletOptions(allOutlets, 'order_outlet_select');
+                    refreshSuggestionsAfterLoad();
                     return;
                 }
             }
@@ -559,9 +567,23 @@
                         sessionStorage.setItem('sinar77_outlets_cache_time', Date.now().toString());
                         renderOutletOptions(allOutlets, 'visit_outlet_select');
                         renderOutletOptions(allOutlets, 'order_outlet_select');
+                        refreshSuggestionsAfterLoad(); // kalau user sudah mulai ngetik sebelum data ini selesai dimuat, cari ulang otomatis sekarang
                     }
                 })
                 .catch(() => {});
+        }
+
+        // Kalau user sudah ngetik nama outlet SEBELUM daftar outlet selesai dimuat dari server,
+        // pencarian tadi hasilnya kosong. Begitu data siap, coba cari ulang otomatis pakai kata yang sudah diketik.
+        function refreshSuggestionsAfterLoad() {
+            const visitInput = document.getElementById('visit_outlet_search');
+            const orderInput = document.getElementById('order_outlet_search');
+            if (visitInput && visitInput.value.trim()) {
+                renderSuggestions(cariOutlet(visitInput.value), 'visit_outlet_suggestions', 'visit_outlet_search', 'visit_outlet_select');
+            }
+            if (orderInput && orderInput.value.trim()) {
+                renderSuggestions(cariOutlet(orderInput.value), 'order_outlet_suggestions', 'order_outlet_search', 'order_outlet_select');
+            }
         }
 
         function renderOutletOptions(outlets, selectId) {
@@ -656,14 +678,24 @@
         }
 
         document.getElementById('visit_outlet_search').addEventListener('input', function(e) {
-            const hasil = cariOutlet(e.target.value);
             if (!e.target.value.trim()) { document.getElementById('visit_outlet_suggestions').classList.add('hidden'); return; }
-            renderSuggestions(hasil, 'visit_outlet_suggestions', 'visit_outlet_search', 'visit_outlet_select');
+            if (allOutlets.length === 0) {
+                const c = document.getElementById('visit_outlet_suggestions');
+                c.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Memuat daftar outlet, sebentar...</div>';
+                c.classList.remove('hidden');
+                return;
+            }
+            renderSuggestions(cariOutlet(e.target.value), 'visit_outlet_suggestions', 'visit_outlet_search', 'visit_outlet_select');
         });
         document.getElementById('order_outlet_search').addEventListener('input', function(e) {
-            const hasil = cariOutlet(e.target.value);
             if (!e.target.value.trim()) { document.getElementById('order_outlet_suggestions').classList.add('hidden'); return; }
-            renderSuggestions(hasil, 'order_outlet_suggestions', 'order_outlet_search', 'order_outlet_select');
+            if (allOutlets.length === 0) {
+                const c = document.getElementById('order_outlet_suggestions');
+                c.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Memuat daftar outlet, sebentar...</div>';
+                c.classList.remove('hidden');
+                return;
+            }
+            renderSuggestions(cariOutlet(e.target.value), 'order_outlet_suggestions', 'order_outlet_search', 'order_outlet_select');
         });
         // Tutup daftar sugesti kalau user klik di luar area input/sugesti
         document.addEventListener('click', function(e) {
