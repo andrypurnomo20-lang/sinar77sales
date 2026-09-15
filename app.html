@@ -808,15 +808,19 @@
         let priceListCache = null;
 
         function loadPriceList(callback) {
-            if (priceListCache) { callback(); return; }
+            // PENTING: cek .length, bukan cuma "if (priceListCache)" — array kosong [] itu tetap
+            // dianggap "ada isinya" di JavaScript, jadi kalau percobaan pertama gagal (misal Apps
+            // Script belum siap saat preload di awal), sistem harus tetap COBA LAGI, bukan berhenti
+            // selamanya menganggap "sudah pernah dimuat" padahal isinya kosong.
+            if (priceListCache && priceListCache.length > 0) { callback(); return; }
             fetch(`${APPS_SCRIPT_URL}?action=price_list`)
                 .then(res => res.json())
                 .then(result => {
                     if (result.status === 'success') priceListCache = result.products;
-                    else priceListCache = [];
+                    else priceListCache = null;
                     callback();
                 })
-                .catch(() => { priceListCache = []; callback(); });
+                .catch(() => { priceListCache = null; callback(); });
         }
 
         let currentOutletTipe = '';
