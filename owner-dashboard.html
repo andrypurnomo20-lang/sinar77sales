@@ -251,8 +251,12 @@
             document.getElementById('start_date').value = firstOfMonth.toISOString().split('T')[0];
             document.getElementById('end_date').value = today.toISOString().split('T')[0];
             document.getElementById('setoran_tanggal').value = today.toISOString().split('T')[0];
+
+            // Muat SEMUA tab dari awal secara paralel, bukan menunggu diklik — supaya begitu
+            // pindah tab, datanya sudah siap tanpa loading tambahan.
             loadDashboard();
             loadSalesListSetoran();
+            loadProgresSalesHariIni();
         }
 
         // ============ NAVIGASI TAB ============
@@ -267,8 +271,7 @@
             });
 
             document.getElementById('date-filter-controls').style.display = (name === 'dashboard') ? 'flex' : 'none';
-
-            if (name === 'progres') loadProgresSalesHariIni();
+            // Data progres sudah dipreload sejak awal (lihat window.onload), tidak perlu load ulang di sini lagi.
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
