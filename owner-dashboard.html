@@ -297,14 +297,15 @@
             document.getElementById('end_date').value = tglLokal(today);
             document.getElementById('setoran_tanggal').value = tglLokal(today);
 
-            // Muat SEMUA tab dari awal secara paralel, bukan menunggu diklik — supaya begitu
-            // pindah tab, datanya sudah siap tanpa loading tambahan.
+            // Cuma muat tab yang sedang aktif (Dashboard) dulu — 3 request bersamaan ke Apps Script
+            // ternyata saling antre di server, jadi malah lebih lambat daripada muat satu-satu.
             loadDashboard();
-            loadSalesListSetoran();
-            loadProgresSalesHariIni();
         }
 
         // ============ NAVIGASI TAB ============
+        let progresSudahDimuat = false;
+        let setoranSudahDimuat = false;
+
         function showTab(name) {
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
@@ -316,7 +317,11 @@
             });
 
             document.getElementById('date-filter-controls').style.display = (name === 'dashboard') ? 'flex' : 'none';
-            // Data progres sudah dipreload sejak awal (lihat window.onload), tidak perlu load ulang di sini lagi.
+
+            // Muat data tab ini SEKALI SAJA, saat pertama kali dibuka — bolak-balik pindah tab
+            // setelahnya tidak fetch ulang, langsung pakai yang sudah ada di memori.
+            if (name === 'progres' && !progresSudahDimuat) { progresSudahDimuat = true; loadProgresSalesHariIni(); }
+            if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); }
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
