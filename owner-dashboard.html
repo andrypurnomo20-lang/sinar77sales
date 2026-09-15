@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinar77 - Owner Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-10">
+
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-20">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div>
+                <h1 class="text-base font-bold">Sinar77 Owner Dashboard</h1>
+                <p class="text-[10px] text-slate-400">Ringkasan performa sales & bisnis</p>
+            </div>
+            <div id="date-filter-controls" class="flex items-center gap-2">
+                <input type="date" id="start_date" class="px-2 py-1.5 rounded-lg text-xs text-slate-800">
+                <span class="text-xs text-slate-400">s/d</span>
+                <input type="date" id="end_date" class="px-2 py-1.5 rounded-lg text-xs text-slate-800">
+                <button onclick="loadDashboard()" class="bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg">Terapkan</button>
+            </div>
+        </div>
+        <div class="max-w-6xl mx-auto px-4 flex gap-1 border-t border-slate-800">
+            <button onclick="showTab('dashboard')" id="tab-btn-dashboard" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-emerald-400 text-white">Dashboard</button>
+            <button onclick="showTab('progres')" id="tab-btn-progres" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Progres Sales Hari Ini</button>
+            <button onclick="showTab('setoran')" id="tab-btn-setoran" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Setoran Harian</button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-3 py-5 w-full">
+
+        <!-- ============ TAB: DASHBOARD ============ -->
+        <div id="tab-dashboard" class="tab-panel">
+        <div id="loading-state" class="text-center py-20 text-slate-400 text-sm">Memuat data dashboard...</div>
+
+        <div id="dashboard-content" class="hidden space-y-6">
+
+            <!-- Ringkasan Outlet -->
+            <section>
+                <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Ringkasan Outlet (Semua Waktu)</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Total Outlet</div>
+                        <div class="text-2xl font-extrabold text-slate-900" id="kpi-total-outlet">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Outlet Active</div>
+                        <div class="text-2xl font-extrabold text-emerald-600" id="kpi-active-outlet">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Outlet Baru (Periode)</div>
+                        <div class="text-2xl font-extrabold text-indigo-600" id="kpi-new-outlet">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Total Piutang</div>
+                        <div class="text-xl font-extrabold text-red-600" id="kpi-piutang">Rp 0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPI Periode -->
+            <section>
+                <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Aktivitas Periode Terpilih</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Total Kunjungan</div>
+                        <div class="text-2xl font-extrabold text-slate-900" id="kpi-visit">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Total Transaksi</div>
+                        <div class="text-2xl font-extrabold text-slate-900" id="kpi-order">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 col-span-2 md:col-span-1">
+                        <div class="text-[10px] text-slate-400 uppercase">Omzet</div>
+                        <div class="text-xl font-extrabold text-emerald-600" id="kpi-omzet">Rp 0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Repeat Rate</div>
+                        <div class="text-2xl font-extrabold text-slate-900" id="kpi-repeat-rate">0%</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grafik: Tipe Outlet & Coverage & Cash/Kredit -->
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Outlet per Tipe</h3>
+                    <canvas id="chart-tipe" height="220"></canvas>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Cash vs Kredit (Jumlah Transaksi)</h3>
+                    <canvas id="chart-payment-count" height="220"></canvas>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Cash vs Kredit (Nilai Rupiah)</h3>
+                    <canvas id="chart-payment-value" height="220"></canvas>
+                </div>
+            </section>
+
+            <!-- Produk Terjual -->
+            <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Produk Terjual (Periode)</h3>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="bg-amber-50 rounded-xl p-3 text-center">
+                        <div class="text-[10px] text-amber-700 uppercase">Kecap</div>
+                        <div class="text-lg font-bold text-amber-800" id="kat-kecap">0</div>
+                    </div>
+                    <div class="bg-rose-50 rounded-xl p-3 text-center">
+                        <div class="text-[10px] text-rose-700 uppercase">Saos/Saus</div>
+                        <div class="text-lg font-bold text-rose-800" id="kat-saos">0</div>
+                    </div>
+                    <div class="bg-sky-50 rounded-xl p-3 text-center">
+                        <div class="text-[10px] text-sky-700 uppercase">Cuka</div>
+                        <div class="text-lg font-bold text-sky-800" id="kat-cuka">0</div>
+                    </div>
+                </div>
+                <canvas id="chart-produk" height="180"></canvas>
+            </section>
+
+            <!-- Coverage per Area -->
+            <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Coverage per Area (City)</h3>
+                <canvas id="chart-coverage" height="180"></canvas>
+            </section>
+
+            <!-- Funnel TikTok -->
+            <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Funnel TikTok → Closing</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-[11px] text-slate-500">Sudah Lihat TikTok</div>
+                        <div class="text-2xl font-extrabold text-emerald-600" id="tiktok-ya-pct">0%</div>
+                        <div class="text-[10px] text-slate-400"><span id="tiktok-ya-order">0</span> order dari <span id="tiktok-ya-total">0</span> kunjungan</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[11px] text-slate-500">Belum/Tidak Lihat</div>
+                        <div class="text-2xl font-extrabold text-slate-400" id="tiktok-tidak-pct">0%</div>
+                        <div class="text-[10px] text-slate-400"><span id="tiktok-tidak-order">0</span> order dari <span id="tiktok-tidak-total">0</span> kunjungan</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kredit Jatuh Tempo -->
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-200">
+                    <h3 class="text-xs font-bold uppercase text-amber-700 mb-2">⚠ Akan Jatuh Tempo (≤3 hari)</h3>
+                    <div id="list-akan-jatuh-tempo" class="space-y-2 text-xs"></div>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-red-300">
+                    <h3 class="text-xs font-bold uppercase text-red-700 mb-2">🚨 Sudah Lewat Jatuh Tempo</h3>
+                    <div id="list-lewat-jatuh-tempo" class="space-y-2 text-xs"></div>
+                </div>
+            </section>
+
+            <!-- Outlet Tidak Dikunjungi -->
+            <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Outlet Tidak Dikunjungi 3+ Minggu</h3>
+                <div id="list-outlet-lama" class="space-y-2 text-xs"></div>
+            </section>
+
+            <!-- GPS Mencurigakan -->
+            <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Ringkasan GPS Mencurigakan (Periode)</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="text-center">
+                        <div class="text-[10px] text-slate-400 uppercase">Kunjungan</div>
+                        <div class="text-xl font-bold text-slate-800" id="gps-visit-count">0</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[10px] text-slate-400 uppercase">Order</div>
+                        <div class="text-xl font-bold text-slate-800" id="gps-order-count">0</div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+        <!-- ============ /TAB: DASHBOARD ============ -->
+
+        <!-- ============ TAB: PROGRES SALES HARI INI ============ -->
+        <div id="tab-progres" class="tab-panel hidden">
+            <div id="progres-loading" class="text-center py-16 text-slate-400 text-sm">Memuat progres sales hari ini...</div>
+            <div id="progres-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Belum ada aktivitas sales tercatat hari ini.</div>
+            <div id="progres-list" class="space-y-4"></div>
+        </div>
+        <!-- ============ /TAB: PROGRES SALES HARI INI ============ -->
+
+        <!-- ============ TAB: SETORAN HARIAN ============ -->
+        <div id="tab-setoran" class="tab-panel hidden">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 max-w-2xl">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Rekonsiliasi Setoran Harian</h2>
+                <p class="text-xs text-slate-500 -mt-2">Bandingkan uang fisik yang disetor sales vs total Cash yang tercatat di sistem.</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tanggal</label>
+                        <input type="date" id="setoran_tanggal" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
+                        <select id="setoran_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="cekSistemSetoran()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold py-2.5 rounded-xl">
+                    Cek Total Cash di Sistem
+                </button>
+
+                <div id="setoran-hasil-cek" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">Cash Seharusnya (dari sistem)</span>
+                        <span id="setoran-expected-display" class="font-bold text-slate-900">Rp 0</span>
+                    </div>
+                    <div id="setoran-rincian-list" class="text-xs text-slate-500 border-t pt-2 space-y-1"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Uang Fisik Diterima (hasil hitung Anda)</label>
+                    <input type="number" id="setoran_actual" min="0" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0" oninput="hitungSelisihSetoran()">
+                </div>
+
+                <div id="setoran-selisih-display" class="hidden rounded-xl p-4 text-center">
+                    <div class="text-xs uppercase font-semibold mb-1">Selisih</div>
+                    <div id="setoran-selisih-angka" class="text-2xl font-bold"></div>
+                    <div id="setoran-selisih-status" class="text-xs mt-1 font-semibold"></div>
+                </div>
+
+                <button onclick="simpanRekonsiliasiSetoran()" id="setoran-save-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm">
+                    Simpan Catatan Rekonsiliasi
+                </button>
+            </div>
+        </div>
+        <!-- ============ /TAB: SETORAN HARIAN ============ -->
+
+    </main>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+        let charts = {};
+        let expectedCashSetoran = 0;
+
+        window.onload = function() {
+            const today = new Date();
+            const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('start_date').value = firstOfMonth.toISOString().split('T')[0];
+            document.getElementById('end_date').value = today.toISOString().split('T')[0];
+            document.getElementById('setoran_tanggal').value = today.toISOString().split('T')[0];
+            loadDashboard();
+            loadSalesListSetoran();
+        }
+
+        // ============ NAVIGASI TAB ============
+        function showTab(name) {
+            document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + name).classList.remove('hidden');
+
+            ['dashboard', 'progres', 'setoran'].forEach(t => {
+                const btn = document.getElementById('tab-btn-' + t);
+                if (t === name) { btn.classList.add('border-emerald-400', 'text-white'); btn.classList.remove('border-transparent', 'text-slate-400'); }
+                else { btn.classList.remove('border-emerald-400', 'text-white'); btn.classList.add('border-transparent', 'text-slate-400'); }
+            });
+
+            document.getElementById('date-filter-controls').style.display = (name === 'dashboard') ? 'flex' : 'none';
+
+            if (name === 'progres') loadProgresSalesHariIni();
+        }
+
+        // ============ TAB: PROGRES SALES HARI INI ============
+        function loadProgresSalesHariIni() {
+            document.getElementById('progres-loading').classList.remove('hidden');
+            document.getElementById('progres-kosong').classList.add('hidden');
+            document.getElementById('progres-list').innerHTML = '';
+
+            fetch(`${APPS_SCRIPT_URL}?action=today_progress_all`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('progres-loading').classList.add('hidden');
+                    if (data.status !== 'success' || data.sales.length === 0) {
+                        document.getElementById('progres-kosong').classList.remove('hidden');
+                        return;
+                    }
+                    renderProgresSales(data.sales);
+                })
+                .catch(() => {
+                    document.getElementById('progres-loading').classList.add('hidden');
+                    document.getElementById('progres-kosong').classList.remove('hidden');
+                });
+        }
+
+        function renderProgresSales(salesList) {
+            const container = document.getElementById('progres-list');
+            container.innerHTML = salesList.map(s => {
+                const timelineHtml = s.timeline.length === 0
+                    ? '<p class="text-xs text-slate-400">Belum ada kunjungan tercatat.</p>'
+                    : s.timeline.map(t => `
+                        <div class="flex items-center gap-3 text-xs py-1.5 border-b border-slate-100 last:border-0">
+                            <div class="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[10px]">${t.urutan}</div>
+                            <div class="flex-grow">
+                                <div class="font-medium text-slate-800">${t.outlet}</div>
+                                <div class="text-slate-400">Jam ${t.jam}</div>
+                            </div>
+                            ${t.jeda_dari_sebelumnya_menit !== null ? `<div class="text-right"><div class="font-semibold ${t.jeda_dari_sebelumnya_menit > 60 ? 'text-amber-600' : 'text-slate-600'}">${t.jeda_dari_sebelumnya_menit} menit</div><div class="text-[10px] text-slate-400">dari kunjungan sebelumnya</div></div>` : '<div class="text-[10px] text-slate-400">Kunjungan pertama</div>'}
+                        </div>
+                    `).join('');
+
+                return `
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-slate-900">${s.sales_rep}</h3>
+                            <span class="text-xs text-slate-500">${s.total_kunjungan} / ${s.target_kunjungan} kunjungan (${s.persen_target}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2 mb-3">
+                            <div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min(s.persen_target, 100)}%"></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+                            <div class="bg-slate-50 rounded-lg p-2">
+                                <div class="text-[10px] text-slate-400 uppercase">Toko Transaksi</div>
+                                <div class="font-bold text-slate-800">${s.jumlah_outlet_transaksi}</div>
+                            </div>
+                            <div class="bg-slate-50 rounded-lg p-2">
+                                <div class="text-[10px] text-slate-400 uppercase">Konversi</div>
+                                <div class="font-bold text-slate-800">${s.konversi_persen}%</div>
+                            </div>
+                            <div class="bg-slate-50 rounded-lg p-2">
+                                <div class="text-[10px] text-slate-400 uppercase">Omzet</div>
+                                <div class="font-bold text-slate-800 text-[11px]">${rupiah(s.total_omzet)}</div>
+                            </div>
+                        </div>
+                        <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Timeline Kunjungan & Jeda Waktu</div>
+                        ${timelineHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============ TAB: SETORAN HARIAN ============
+        function loadSalesListSetoran() {
+            fetch(`${APPS_SCRIPT_URL}?action=list_sales`)
+                .then(res => res.json())
+                .then(result => {
+                    const select = document.getElementById('setoran_sales_rep');
+                    if (result.status === 'success' && result.sales.length > 0) {
+                        select.innerHTML = '<option value="">-- Pilih Sales --</option>' + result.sales.map(s => `<option value="${s}">${s}</option>`).join('');
+                    } else {
+                        select.innerHTML = '<option value="">Belum ada data sales</option>';
+                    }
+                });
+        }
+
+        function cekSistemSetoran() {
+            const tanggal = document.getElementById('setoran_tanggal').value;
+            const salesRep = document.getElementById('setoran_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            fetch(`${APPS_SCRIPT_URL}?action=expected_cash&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        expectedCashSetoran = result.total_cash;
+                        document.getElementById('setoran-expected-display').innerText = rupiah(expectedCashSetoran);
+                        const rincianList = document.getElementById('setoran-rincian-list');
+                        rincianList.innerHTML = result.rincian.length === 0
+                            ? '<p>Tidak ada transaksi Cash tercatat untuk sales & tanggal ini.</p>'
+                            : result.rincian.map(r => `<div>${r.outlet} - ${r.item}: ${rupiah(r.total)}</div>`).join('');
+                        document.getElementById('setoran-hasil-cek').classList.remove('hidden');
+                        hitungSelisihSetoran();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                });
+        }
+
+        function hitungSelisihSetoran() {
+            const actualVal = document.getElementById('setoran_actual').value;
+            const display = document.getElementById('setoran-selisih-display');
+            if (actualVal === '') { display.classList.add('hidden'); return; }
+
+            const actual = parseFloat(actualVal) || 0;
+            const selisih = actual - expectedCashSetoran;
+            const angka = document.getElementById('setoran-selisih-angka');
+            const status = document.getElementById('setoran-selisih-status');
+
+            display.classList.remove('hidden');
+            angka.innerText = (selisih >= 0 ? '+' : '') + rupiah(selisih);
+
+            if (selisih === 0) {
+                display.className = 'rounded-xl p-4 text-center bg-emerald-50 border border-emerald-200';
+                angka.className = 'text-2xl font-bold text-emerald-700';
+                status.innerText = 'SESUAI'; status.className = 'text-xs mt-1 font-semibold text-emerald-700';
+            } else if (selisih < 0) {
+                display.className = 'rounded-xl p-4 text-center bg-red-50 border border-red-300';
+                angka.className = 'text-2xl font-bold text-red-700';
+                status.innerText = 'KURANG — perlu ditanyakan ke sales'; status.className = 'text-xs mt-1 font-semibold text-red-700';
+            } else {
+                display.className = 'rounded-xl p-4 text-center bg-amber-50 border border-amber-300';
+                angka.className = 'text-2xl font-bold text-amber-700';
+                status.innerText = 'LEBIH — cek ulang, mungkin ada transaksi belum tercatat'; status.className = 'text-xs mt-1 font-semibold text-amber-700';
+            }
+        }
+
+        function simpanRekonsiliasiSetoran() {
+            const tanggal = document.getElementById('setoran_tanggal').value;
+            const salesRep = document.getElementById('setoran_sales_rep').value;
+            const actual = document.getElementById('setoran_actual').value;
+            if (!salesRep || actual === '') { alert('Lengkapi sales rep dan uang fisik dulu.'); return; }
+
+            const btn = document.getElementById('setoran-save-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'setoran', tanggal, sales_rep: salesRep, expected: expectedCashSetoran, actual, dicatat_oleh: 'Owner' })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Simpan Catatan Rekonsiliasi';
+                    if (result.status === 'success') alert(`Rekonsiliasi tersimpan. Status: ${result.status_setoran}`);
+                    else alert('Error: ' + result.message);
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Catatan Rekonsiliasi'; alert('Koneksi error: ' + err.message); });
+        }
+
+        function rupiah(n) { return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID'); }
+
+        function loadDashboard() {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('dashboard-content').classList.add('hidden');
+
+            const start = document.getElementById('start_date').value;
+            const end = document.getElementById('end_date').value;
+
+            fetch(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    if (data.status !== 'success') {
+                        document.getElementById('loading-state').innerText = 'Gagal memuat: ' + data.message;
+                        document.getElementById('loading-state').classList.remove('hidden');
+                        return;
+                    }
+                    document.getElementById('dashboard-content').classList.remove('hidden');
+                    render(data);
+                })
+                .catch(err => {
+                    document.getElementById('loading-state').innerText = 'Koneksi error: ' + err.message;
+                });
+        }
+
+        function render(d) {
+            // Ringkasan outlet
+            document.getElementById('kpi-total-outlet').innerText = d.outlet_summary.total;
+            document.getElementById('kpi-active-outlet').innerText = d.outlet_summary.active;
+            document.getElementById('kpi-new-outlet').innerText = d.outlet_summary.new_outlet_periode;
+            document.getElementById('kpi-piutang').innerText = rupiah(d.piutang_outstanding);
+
+            document.getElementById('kpi-visit').innerText = d.totals.total_visit;
+            document.getElementById('kpi-order').innerText = d.totals.total_order;
+            document.getElementById('kpi-omzet').innerText = rupiah(d.totals.omzet);
+
+            const repeatRate = d.repeat_rate.trial > 0 ? Math.round((d.repeat_rate.repeat / d.repeat_rate.trial) * 100) : 0;
+            document.getElementById('kpi-repeat-rate').innerText = repeatRate + '%';
+
+            // Chart: Outlet per Tipe
+            buatChart('chart-tipe', 'doughnut', Object.keys(d.outlet_summary.by_tipe), Object.values(d.outlet_summary.by_tipe),
+                ['#6366f1', '#10b981', '#f59e0b', '#64748b', '#ec4899']);
+
+            // Chart: Cash vs Kredit (jumlah)
+            buatChart('chart-payment-count', 'doughnut', ['Cash', 'Kredit'], [d.payment.cash_count, d.payment.kredit_count], ['#10b981', '#f59e0b']);
+
+            // Chart: Cash vs Kredit (nilai)
+            buatChart('chart-payment-value', 'doughnut', ['Cash', 'Kredit'], [d.payment.cash_value, d.payment.kredit_value], ['#10b981', '#f59e0b']);
+
+            // Produk terjual
+            document.getElementById('kat-kecap').innerText = d.produk_terjual.kategori.Kecap || 0;
+            document.getElementById('kat-saos').innerText = d.produk_terjual.kategori['Saos/Saus'] || 0;
+            document.getElementById('kat-cuka').innerText = d.produk_terjual.kategori.Cuka || 0;
+            const produkLabels = d.produk_terjual.detail.map(p => p.nama);
+            const produkQty = d.produk_terjual.detail.map(p => p.qty);
+            buatChart('chart-produk', 'bar', produkLabels, produkQty, '#6366f1');
+
+            // Coverage per city
+            const cityLabels = Object.keys(d.coverage_per_city);
+            const cityTotal = cityLabels.map(c => d.coverage_per_city[c].total);
+            const cityActive = cityLabels.map(c => d.coverage_per_city[c].active);
+            buatChartMulti('chart-coverage', cityLabels, [
+                { label: 'Total Outlet', data: cityTotal, backgroundColor: '#94a3b8' },
+                { label: 'Active', data: cityActive, backgroundColor: '#10b981' }
+            ]);
+
+            // Funnel TikTok
+            const yaPct = d.tiktok_funnel.ya_total > 0 ? Math.round((d.tiktok_funnel.ya_order / d.tiktok_funnel.ya_total) * 100) : 0;
+            const tidakPct = d.tiktok_funnel.tidak_total > 0 ? Math.round((d.tiktok_funnel.tidak_order / d.tiktok_funnel.tidak_total) * 100) : 0;
+            document.getElementById('tiktok-ya-pct').innerText = yaPct + '%';
+            document.getElementById('tiktok-ya-order').innerText = d.tiktok_funnel.ya_order;
+            document.getElementById('tiktok-ya-total').innerText = d.tiktok_funnel.ya_total;
+            document.getElementById('tiktok-tidak-pct').innerText = tidakPct + '%';
+            document.getElementById('tiktok-tidak-order').innerText = d.tiktok_funnel.tidak_order;
+            document.getElementById('tiktok-tidak-total').innerText = d.tiktok_funnel.tidak_total;
+
+            // Kredit jatuh tempo
+            renderList('list-akan-jatuh-tempo', d.kredit.akan_jatuh_tempo, item =>
+                `<div class="flex justify-between bg-amber-50 rounded-lg p-2"><span>${item.outlet}</span><span class="font-semibold">${rupiah(item.nominal)} — ${item.hari} hari lagi</span></div>`,
+                'Tidak ada kredit yang akan jatuh tempo.');
+
+            renderList('list-lewat-jatuh-tempo', d.kredit.lewat_jatuh_tempo, item =>
+                `<div class="flex justify-between bg-red-50 rounded-lg p-2"><span>${item.outlet}</span><span class="font-semibold text-red-700">${rupiah(item.nominal)} — telat ${Math.abs(item.hari)} hari</span></div>`,
+                'Tidak ada kredit yang telat.');
+
+            // Outlet lama tidak dikunjungi
+            renderList('list-outlet-lama', d.outlet_lama_tidak_dikunjungi, item =>
+                `<div class="flex justify-between bg-slate-50 rounded-lg p-2"><span>${item.outlet}</span><span class="font-semibold">${item.hari} hari (terakhir: ${item.terakhir})</span></div>`,
+                'Semua outlet sudah dikunjungi dalam 3 minggu terakhir.');
+
+            // GPS
+            document.getElementById('gps-visit-count').innerText = d.gps_suspicious.visit;
+            document.getElementById('gps-order-count').innerText = d.gps_suspicious.order;
+        }
+
+        function renderList(containerId, items, templateFn, emptyMsg) {
+            const container = document.getElementById(containerId);
+            if (!items || items.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-2">${emptyMsg}</p>`;
+                return;
+            }
+            container.innerHTML = items.slice(0, 15).map(templateFn).join('');
+        }
+
+        function buatChart(canvasId, type, labels, data, colors) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+        }
+
+        function buatChartMulti(canvasId, labels, datasets) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: datasets },
+                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+        }
+    </script>
+</body>
+</html>
