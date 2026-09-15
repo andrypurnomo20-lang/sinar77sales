@@ -330,8 +330,7 @@
             document.getElementById('progres-kosong').classList.add('hidden');
             document.getElementById('progres-list').innerHTML = '';
 
-            fetch(`${APPS_SCRIPT_URL}?action=today_progress_all`)
-                .then(res => res.json())
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=today_progress_all`)
                 .then(data => {
                     document.getElementById('progres-loading').classList.add('hidden');
                     if (data.status !== 'success' || data.sales.length === 0) {
@@ -394,8 +393,7 @@
 
         // ============ TAB: SETORAN HARIAN ============
         function loadSalesListSetoran() {
-            fetch(`${APPS_SCRIPT_URL}?action=list_sales`)
-                .then(res => res.json())
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_sales`)
                 .then(result => {
                     const select = document.getElementById('setoran_sales_rep');
                     if (result.status === 'success' && result.sales.length > 0) {
@@ -403,6 +401,9 @@
                     } else {
                         select.innerHTML = '<option value="">Belum ada data sales</option>';
                     }
+                })
+                .catch(() => {
+                    document.getElementById('setoran_sales_rep').innerHTML = '<option value="">Gagal memuat, coba refresh halaman</option>';
                 });
         }
 
@@ -482,6 +483,29 @@
 
         function rupiah(n) { return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID'); }
 
+        // Ambil data dengan retry otomatis — Apps Script kadang gagal di percobaan pertama
+        // (404 di redirect internal Google), tapi biasanya langsung sukses kalau dicoba ulang.
+        function fetchDenganRetry(url, percobaanTersisa) {
+            if (percobaanTersisa === undefined) percobaanTersisa = 2;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            return fetch(url, { signal: controller.signal, cache: 'no-store' })
+                .then(res => {
+                    clearTimeout(timeoutId);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    if (percobaanTersisa > 0) {
+                        return new Promise(resolve => setTimeout(resolve, 800))
+                            .then(() => fetchDenganRetry(url, percobaanTersisa - 1));
+                    }
+                    throw err;
+                });
+        }
+
         function loadDashboard() {
             document.getElementById('loading-state').classList.remove('hidden');
             document.getElementById('loading-state').innerText = 'Memuat data dashboard...';
@@ -490,13 +514,8 @@
             const start = document.getElementById('start_date').value;
             const end = document.getElementById('end_date').value;
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 detik, jangan sampai nyangkut selamanya
-
-            fetch(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}`, { signal: controller.signal })
-                .then(res => res.json())
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}`)
                 .then(data => {
-                    clearTimeout(timeoutId);
                     document.getElementById('loading-state').classList.add('hidden');
                     if (data.status !== 'success') {
                         document.getElementById('loading-state').innerText = 'Gagal memuat: ' + data.message;
@@ -507,8 +526,7 @@
                     render(data);
                 })
                 .catch(err => {
-                    clearTimeout(timeoutId);
-                    const pesan = err.name === 'AbortError' ? 'Server terlalu lama merespons (>25 detik). Coba klik Terapkan lagi.' : ('Koneksi error: ' + err.message);
+                    const pesan = err.name === 'AbortError' ? 'Server terlalu lama merespons. Coba klik Terapkan lagi.' : ('Koneksi error setelah beberapa percobaan: ' + err.message);
                     document.getElementById('loading-state').innerText = pesan;
                     document.getElementById('loading-state').classList.remove('hidden');
                 });
