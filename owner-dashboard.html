@@ -286,11 +286,15 @@
 
                 <div id="owner-bk-sisa-info" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-4">
                     <div class="text-xs text-rose-700 uppercase font-semibold mb-1">Total Sisa Kredit Outlet Ini</div>
-                    <div class="text-2xl font-extrabold text-rose-800" id="owner-bk-total-sisa">Rp 0</div>
-                    <div id="owner-bk-rincian-list" class="text-xs text-rose-600 mt-2 space-y-1"></div>
+                    <div class="text-2xl font-extrabold text-rose-800 mb-2" id="owner-bk-total-sisa">Rp 0</div>
+                    <div id="owner-bk-rincian-list" class="space-y-2"></div>
                 </div>
                 <div id="owner-bk-lunas-info" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold">
                     ✓ Outlet ini tidak punya kredit yang belum lunas.
+                </div>
+                <div id="owner-bk-riwayat-wrapper" class="hidden">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Riwayat Kredit Outlet Ini</label>
+                    <div id="owner-bk-riwayat-list" class="space-y-2"></div>
                 </div>
 
                 <div>
@@ -454,6 +458,35 @@
         }
 
         // ============ BAYAR KREDIT (OWNER) ============
+        function labelStatusKredit(status) {
+            if (status === 'Lunas') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Lunas</span>';
+            if (status === 'Sebagian') return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Sebagian</span>';
+            return '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Belum Lunas</span>';
+        }
+
+        function renderKartuKredit(r) {
+            return `
+                <div class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-slate-400">${r.tanggal || '-'}</span>
+                        ${labelStatusKredit(r.status)}
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Jumlah Kredit</span>
+                        <span class="font-semibold text-slate-800">${rupiah(r.jumlah_kredit)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Sisa</span>
+                        <span class="font-semibold ${r.sisa > 0 ? 'text-rose-600' : 'text-emerald-600'}">${rupiah(r.sisa)}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400 mt-1">
+                        <span>Jatuh Tempo</span>
+                        <span>${r.jatuh_tempo || '-'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         document.getElementById('owner_bk_outlet').addEventListener('change', function(e) {
             const outletId = e.target.value;
             if (!outletId) return;
@@ -462,14 +495,19 @@
                 .then(result => {
                     if (result.status === 'success' && result.total_sisa > 0) {
                         document.getElementById('owner-bk-total-sisa').innerText = rupiah(result.total_sisa);
-                        document.getElementById('owner-bk-rincian-list').innerHTML = result.rincian.map(r =>
-                            `<div>Order ${r.order_id.slice(-6)}: ${rupiah(r.sisa)} (jatuh tempo ${r.jatuh_tempo || '-'})</div>`
-                        ).join('');
+                        document.getElementById('owner-bk-rincian-list').innerHTML = result.rincian.map(renderKartuKredit).join('');
                         document.getElementById('owner-bk-sisa-info').classList.remove('hidden');
                         document.getElementById('owner-bk-lunas-info').classList.add('hidden');
                     } else {
                         document.getElementById('owner-bk-sisa-info').classList.add('hidden');
                         document.getElementById('owner-bk-lunas-info').classList.remove('hidden');
+                    }
+
+                    if (result.status === 'success' && result.riwayat && result.riwayat.length > 0) {
+                        document.getElementById('owner-bk-riwayat-list').innerHTML = result.riwayat.map(renderKartuKredit).join('');
+                        document.getElementById('owner-bk-riwayat-wrapper').classList.remove('hidden');
+                    } else {
+                        document.getElementById('owner-bk-riwayat-wrapper').classList.add('hidden');
                     }
                 });
         });
@@ -501,6 +539,7 @@
                         document.getElementById('owner_bk_jumlah').value = '';
                         document.getElementById('owner-bk-sisa-info').classList.add('hidden');
                         document.getElementById('owner-bk-lunas-info').classList.add('hidden');
+                        document.getElementById('owner-bk-riwayat-wrapper').classList.add('hidden');
                         sel.value = '';
                     } else {
                         alert('Error: ' + result.message);
