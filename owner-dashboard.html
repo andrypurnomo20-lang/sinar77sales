@@ -28,6 +28,7 @@
             <button onclick="showTab('dashboard')" id="tab-btn-dashboard" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-emerald-400 text-white">Dashboard</button>
             <button onclick="showTab('progres')" id="tab-btn-progres" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Progres Sales Hari Ini</button>
             <button onclick="showTab('setoran')" id="tab-btn-setoran" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Setoran Harian</button>
+            <button onclick="showTab('stok')" id="tab-btn-stok" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Stok Harian</button>
         </div>
     </header>
 
@@ -317,6 +318,59 @@
         </div>
         <!-- ============ /TAB: SETORAN HARIAN ============ -->
 
+        <!-- ============ TAB: STOK HARIAN ============ -->
+        <div id="tab-stok" class="tab-panel hidden">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 max-w-3xl">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Stok Bawaan Harian Sales</h2>
+                <p class="text-xs text-slate-500 -mt-2">Pagi: catat barang yang dibawa sales. Sore: catat sisa fisik hasil hitung, sistem otomatis bandingkan dengan sisa seharusnya.</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tanggal</label>
+                        <input type="date" id="stok_tanggal" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
+                        <select id="stok_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="loadStokTabel()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold py-2.5 rounded-xl">
+                    Tampilkan / Refresh Tabel Stok
+                </button>
+
+                <div id="stok-tabel-wrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-left">
+                                <th class="p-2 rounded-l-lg">Produk</th>
+                                <th class="p-2 text-center">Dibawa (Pagi)</th>
+                                <th class="p-2 text-center">Terjual (Sistem)</th>
+                                <th class="p-2 text-center">Sisa Sistem</th>
+                                <th class="p-2 text-center">Sisa Fisik (Sore)</th>
+                                <th class="p-2 text-center rounded-r-lg">Selisih</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stok-tabel-body"></tbody>
+                    </table>
+                </div>
+                <p id="stok-kosong-info" class="hidden text-xs text-slate-400 text-center py-4">Belum ada stok pagi tercatat untuk sales & tanggal ini.</p>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="simpanStokPagi()" id="stok-pagi-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm">
+                        Simpan Stok Pagi (Dibawa)
+                    </button>
+                    <button onclick="simpanStokSore()" id="stok-sore-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-sm">
+                        Simpan Stok Sore (Sisa Fisik)
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400">Isi kolom "Dibawa (Pagi)" untuk catat barang berangkat, atau kolom "Sisa Fisik (Sore)" untuk catat hasil hitung pulang — isi salah satu sesuai waktu, lalu klik tombol yang sesuai.</p>
+            </div>
+        </div>
+        <!-- ============ /TAB: STOK HARIAN ============ -->
+
     </main>
 
     <script>
@@ -348,12 +402,14 @@
         // ============ NAVIGASI TAB ============
         let progresSudahDimuat = false;
         let setoranSudahDimuat = false;
+        let stokSudahDimuat = false;
+        let daftarProdukStok = []; // daftar nama produk dari PRICE LIST, dipakai buat form stok pagi
 
         function showTab(name) {
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
 
-            ['dashboard', 'progres', 'setoran'].forEach(t => {
+            ['dashboard', 'progres', 'setoran', 'stok'].forEach(t => {
                 const btn = document.getElementById('tab-btn-' + t);
                 if (t === name) { btn.classList.add('border-emerald-400', 'text-white'); btn.classList.remove('border-transparent', 'text-slate-400'); }
                 else { btn.classList.remove('border-emerald-400', 'text-white'); btn.classList.add('border-transparent', 'text-slate-400'); }
@@ -365,6 +421,7 @@
             // setelahnya tidak fetch ulang, langsung pakai yang sudah ada di memori.
             if (name === 'progres' && !progresSudahDimuat) { progresSudahDimuat = true; loadProgresSalesHariIni(); }
             if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); }
+            if (name === 'stok' && !stokSudahDimuat) { stokSudahDimuat = true; initStokTab(); }
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
@@ -554,6 +611,144 @@
                     }
                 })
                 .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Pembayaran'; alert('Koneksi error: ' + err.message); });
+        }
+
+        // ============ TAB: STOK HARIAN ============
+        function initStokTab() {
+            document.getElementById('stok_tanggal').value = tglLokal(new Date());
+
+            // Isi dropdown sales dari list_sales
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_sales`)
+                .then(result => {
+                    const select = document.getElementById('stok_sales_rep');
+                    if (result.status === 'success' && result.sales.length > 0) {
+                        select.innerHTML = result.sales.map(s => `<option value="${s}">${s}</option>`).join('');
+                    } else {
+                        select.innerHTML = '<option value="">Belum ada data sales</option>';
+                    }
+                });
+
+            // Ambil daftar produk dari PRICE LIST untuk form input pagi
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=price_list`)
+                .then(result => {
+                    if (result.status === 'success') daftarProdukStok = result.products.map(p => p.nama);
+                });
+        }
+
+        function loadStokTabel() {
+            const tanggal = document.getElementById('stok_tanggal').value;
+            const salesRep = document.getElementById('stok_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=stok_hari_ini&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
+                .then(result => {
+                    if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
+
+                    const wrapper = document.getElementById('stok-tabel-wrapper');
+                    const kosongInfo = document.getElementById('stok-kosong-info');
+                    const tbody = document.getElementById('stok-tabel-body');
+
+                    // Gabungkan produk yang sudah tercatat stoknya + semua produk dari Price List
+                    // (supaya produk yang belum pernah diisi stok pagi tetap muncul dengan input kosong)
+                    const stokMap = {};
+                    result.stok.forEach(s => stokMap[s.produk] = s);
+
+                    const semuaProduk = daftarProdukStok.length > 0 ? daftarProdukStok : Object.keys(stokMap);
+
+                    if (semuaProduk.length === 0) {
+                        wrapper.classList.add('hidden');
+                        kosongInfo.classList.remove('hidden');
+                        return;
+                    }
+
+                    tbody.innerHTML = semuaProduk.map(produk => {
+                        const s = stokMap[produk];
+                        const dibawa = s ? s.qty_dibawa : 0;
+                        const terjual = s ? s.qty_terjual : 0;
+                        const sisaSistem = s ? s.sisa_sistem : 0;
+                        const sisaFisik = s && s.qty_sisa_fisik !== null && s.qty_sisa_fisik !== undefined ? s.qty_sisa_fisik : '';
+                        const selisih = sisaFisik !== '' ? (sisaSistem - Number(sisaFisik)) : null;
+                        const selisihHtml = selisih === null
+                            ? '<span class="text-slate-300">-</span>'
+                            : selisih === 0
+                                ? '<span class="text-emerald-600 font-semibold">Sesuai</span>'
+                                : `<span class="text-red-600 font-semibold">${selisih > 0 ? '-' : '+'}${Math.abs(selisih)}</span>`;
+
+                        return `
+                            <tr class="border-b border-slate-100">
+                                <td class="p-2 font-medium">${produk}</td>
+                                <td class="p-2 text-center">
+                                    <input type="number" min="0" class="stok-input-dibawa w-16 text-center border border-slate-200 rounded-lg px-1 py-1" data-produk="${produk}" value="${dibawa || ''}" placeholder="0">
+                                </td>
+                                <td class="p-2 text-center text-slate-500">${terjual}</td>
+                                <td class="p-2 text-center font-semibold">${sisaSistem}</td>
+                                <td class="p-2 text-center">
+                                    <input type="number" min="0" class="stok-input-sisa-fisik w-16 text-center border border-slate-200 rounded-lg px-1 py-1" data-produk="${produk}" value="${sisaFisik}" placeholder="-">
+                                </td>
+                                <td class="p-2 text-center">${selisihHtml}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    wrapper.classList.remove('hidden');
+                    kosongInfo.classList.add('hidden');
+                });
+        }
+
+        function simpanStokPagi() {
+            const tanggal = document.getElementById('stok_tanggal').value;
+            const salesRep = document.getElementById('stok_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            const items = Array.from(document.querySelectorAll('.stok-input-dibawa'))
+                .map(input => ({ produk: input.dataset.produk, qty_dibawa: input.value }))
+                .filter(x => x.qty_dibawa !== '' && Number(x.qty_dibawa) > 0);
+
+            if (items.length === 0) { alert('Isi minimal 1 produk di kolom "Dibawa (Pagi)".'); return; }
+
+            const btn = document.getElementById('stok-pagi-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'stok_pagi', tanggal, sales_rep: salesRep, items })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Simpan Stok Pagi (Dibawa)';
+                    if (result.status === 'success') { alert('Stok pagi tersimpan.'); loadStokTabel(); }
+                    else alert('Error: ' + result.message);
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Stok Pagi (Dibawa)'; alert('Koneksi error: ' + err.message); });
+        }
+
+        function simpanStokSore() {
+            const tanggal = document.getElementById('stok_tanggal').value;
+            const salesRep = document.getElementById('stok_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            const items = Array.from(document.querySelectorAll('.stok-input-sisa-fisik'))
+                .map(input => ({ produk: input.dataset.produk, qty_sisa_fisik: input.value }))
+                .filter(x => x.qty_sisa_fisik !== '');
+
+            if (items.length === 0) { alert('Isi minimal 1 produk di kolom "Sisa Fisik (Sore)".'); return; }
+
+            const btn = document.getElementById('stok-sore-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'stok_sore', tanggal, sales_rep: salesRep, items })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Simpan Stok Sore (Sisa Fisik)';
+                    if (result.status === 'success') { alert('Stok sore tersimpan.'); loadStokTabel(); }
+                    else alert('Error: ' + result.message);
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Stok Sore (Sisa Fisik)'; alert('Koneksi error: ' + err.message); });
         }
 
         function cekSistemSetoran() {
