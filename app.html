@@ -113,6 +113,59 @@
                         <div class="text-xs text-slate-500">Catat transaksi / order outlet</div>
                     </div>
                 </button>
+
+                <button onclick="showView('bayarkredit')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-rose-400 transition">
+                    <div class="bg-rose-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Bayar Kredit</div>
+                        <div class="text-xs text-slate-500">Catat pelunasan / cicilan kredit outlet</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: BAYAR KREDIT ============ -->
+        <div id="view-bayarkredit" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Catat Pembayaran Kredit</h2>
+
+                <form id="bayarkredit-form" class="space-y-3.5">
+                    <div class="relative">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
+                        <input type="text" id="bk_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                        <div id="bk_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                        <select id="bk_outlet_select" required class="hidden">
+                            <option value="">-- Memuat daftar outlet... --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                        <input type="text" id="bk_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                        <button type="button" onclick="gantiSalesRep('bk')" id="bk-ganti-nama-btn" class="hidden text-[10px] text-rose-600 font-semibold mt-1">Ganti nama</button>
+                    </div>
+
+                    <div id="bk-sisa-info" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-4">
+                        <div class="text-xs text-rose-700 uppercase font-semibold mb-1">Total Sisa Kredit Outlet Ini</div>
+                        <div class="text-2xl font-extrabold text-rose-800" id="bk-total-sisa">Rp 0</div>
+                        <div id="bk-rincian-list" class="text-xs text-rose-600 mt-2 space-y-1"></div>
+                    </div>
+                    <div id="bk-lunas-info" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-semibold">
+                        ✓ Outlet ini tidak punya kredit yang belum lunas.
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Jumlah Dibayar *</label>
+                        <input type="number" id="bk_jumlah" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0">
+                        <p class="text-[10px] text-slate-400 mt-1">Boleh bayar sebagian (cicilan) — sistem otomatis alokasikan ke tagihan yang paling lama jatuh temponya dulu.</p>
+                    </div>
+
+                    <button type="submit" id="bk-submit-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                        <span id="bk-submit-text">Simpan Pembayaran</span>
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -430,8 +483,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -442,7 +495,7 @@
                 }
                 loadMasterData();
             }
-            if ((name === 'visit' || name === 'order') && allOutlets.length === 0) {
+            if ((name === 'visit' || name === 'order' || name === 'bayarkredit') && allOutlets.length === 0) {
                 loadOutlets();
             }
             loadSavedSalesRep();
@@ -520,7 +573,7 @@
         function loadSavedSalesRep() {
             const savedName = localStorage.getItem('sinar77_sales_rep');
             if (!savedName) return;
-            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep'].forEach(id => {
+            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep', 'bk_sales_rep'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input && !input.value) {
                     input.value = savedName;
@@ -530,13 +583,15 @@
             });
             const v = document.getElementById('visit-ganti-nama-btn');
             const o = document.getElementById('order-ganti-nama-btn');
+            const bk = document.getElementById('bk-ganti-nama-btn');
             if (v) v.classList.remove('hidden');
             if (o) o.classList.remove('hidden');
+            if (bk) bk.classList.remove('hidden');
         }
 
         function gantiSalesRep(ctx) {
-            const id = ctx === 'visit' ? 'visit_sales_rep' : 'order_sales_rep';
-            const input = document.getElementById(id);
+            const idMap = { visit: 'visit_sales_rep', order: 'order_sales_rep', bk: 'bk_sales_rep' };
+            const input = document.getElementById(idMap[ctx] || 'order_sales_rep');
             input.readOnly = false;
             input.classList.remove('bg-slate-50');
             input.value = '';
@@ -783,6 +838,16 @@
             }
             renderSuggestions(cariOutlet(e.target.value), 'order_outlet_suggestions', 'order_outlet_search', 'order_outlet_select');
         });
+        document.getElementById('bk_outlet_search').addEventListener('input', function(e) {
+            if (!e.target.value.trim()) { document.getElementById('bk_outlet_suggestions').classList.add('hidden'); return; }
+            if (allOutlets.length === 0) {
+                const c = document.getElementById('bk_outlet_suggestions');
+                c.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Memuat daftar outlet, sebentar...</div>';
+                c.classList.remove('hidden');
+                return;
+            }
+            renderSuggestions(cariOutlet(e.target.value), 'bk_outlet_suggestions', 'bk_outlet_search', 'bk_outlet_select');
+        });
         // Tutup daftar sugesti kalau user klik di luar area input/sugesti
         document.addEventListener('click', function(e) {
             if (!e.target.closest('#visit_outlet_search') && !e.target.closest('#visit_outlet_suggestions')) {
@@ -791,6 +856,71 @@
             if (!e.target.closest('#order_outlet_search') && !e.target.closest('#order_outlet_suggestions')) {
                 document.getElementById('order_outlet_suggestions').classList.add('hidden');
             }
+            if (!e.target.closest('#bk_outlet_search') && !e.target.closest('#bk_outlet_suggestions')) {
+                document.getElementById('bk_outlet_suggestions').classList.add('hidden');
+            }
+        });
+
+        // ============ BAYAR KREDIT ============
+        document.getElementById('bk_outlet_select').addEventListener('change', function(e) {
+            const outletId = e.target.value;
+            if (!outletId) return;
+
+            fetch(`${APPS_SCRIPT_URL}?action=sisa_kredit&outlet_id=${encodeURIComponent(outletId)}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success' && result.total_sisa > 0) {
+                        document.getElementById('bk-total-sisa').innerText = 'Rp ' + result.total_sisa.toLocaleString('id-ID');
+                        document.getElementById('bk-rincian-list').innerHTML = result.rincian.map(r =>
+                            `<div>Order ${r.order_id.slice(-6)}: Rp${r.sisa.toLocaleString('id-ID')} (jatuh tempo ${r.jatuh_tempo || '-'})</div>`
+                        ).join('');
+                        document.getElementById('bk-sisa-info').classList.remove('hidden');
+                        document.getElementById('bk-lunas-info').classList.add('hidden');
+                    } else {
+                        document.getElementById('bk-sisa-info').classList.add('hidden');
+                        document.getElementById('bk-lunas-info').classList.remove('hidden');
+                    }
+                });
+        });
+
+        document.getElementById('bayarkredit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const sel = document.getElementById('bk_outlet_select');
+            const outletId = sel.value;
+            const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+            const salesRep = document.getElementById('bk_sales_rep').value.trim();
+            const jumlah = document.getElementById('bk_jumlah').value;
+
+            if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+            if (!salesRep) { showModal('Gagal', 'Sales Rep wajib diisi.'); return; }
+            if (!jumlah || Number(jumlah) <= 0) { showModal('Gagal', 'Isi jumlah dibayar dengan benar.'); return; }
+
+            const btn = document.getElementById('bk-submit-btn');
+            const txt = document.getElementById('bk-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'bayar_kredit', outlet_id: outletId, outlet_name: outletName, sales_rep: salesRep, jumlah_dibayar: jumlah, dicatat_oleh: 'Sales' })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Simpan Pembayaran';
+                    if (result.status === 'success') {
+                        simpanSalesRep(salesRep);
+                        let msg = `Pembayaran Rp${Number(jumlah).toLocaleString('id-ID')} tersimpan. Sisa kredit outlet ini sekarang Rp${result.sisa_total_outlet.toLocaleString('id-ID')}.`;
+                        if (result.kelebihan > 0) msg += ` Catatan: ada kelebihan bayar Rp${result.kelebihan.toLocaleString('id-ID')} (outlet ini tidak punya kredit sebesar itu).`;
+                        showModal('Sukses', msg);
+                        document.getElementById('bayarkredit-form').reset();
+                        document.getElementById('bk-sisa-info').classList.add('hidden');
+                        document.getElementById('bk-lunas-info').classList.add('hidden');
+                        loadSavedSalesRep();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Simpan Pembayaran'; showModal('Gagal', 'Koneksi error: ' + err.message); });
         });
 
         document.getElementById('visit_outlet_select').addEventListener('change', function(e) {
