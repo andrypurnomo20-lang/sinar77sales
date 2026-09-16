@@ -640,6 +640,20 @@
             const salesRep = document.getElementById('stok_sales_rep').value;
             if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
 
+            // Pastikan daftar produk (dari PRICE LIST) sudah siap dulu — kalau belum, ambil dulu baru lanjut.
+            // Ini mencegah tabel muncul kosong kalau tombol diklik sebelum fetch awal selesai.
+            if (daftarProdukStok.length === 0) {
+                fetchDenganRetry(`${APPS_SCRIPT_URL}?action=price_list`)
+                    .then(result => {
+                        if (result.status === 'success') daftarProdukStok = result.products.map(p => p.nama);
+                        renderTabelStok(salesRep, tanggal);
+                    });
+            } else {
+                renderTabelStok(salesRep, tanggal);
+            }
+        }
+
+        function renderTabelStok(salesRep, tanggal) {
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=stok_hari_ini&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
                 .then(result => {
                     if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
