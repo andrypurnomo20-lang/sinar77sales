@@ -302,6 +302,14 @@
                     <input type="number" id="owner_bk_jumlah" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0">
                 </div>
 
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Bayar</label>
+                    <select id="owner_bk_metode_bayar" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="Cash">Cash</option>
+                        <option value="Transfer">Transfer</option>
+                    </select>
+                </div>
+
                 <button onclick="simpanBayarKreditOwner()" id="owner-bk-submit-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-sm">
                     Simpan Pembayaran
                 </button>
@@ -527,7 +535,7 @@
             fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ form_type: 'bayar_kredit', outlet_id: outletId, outlet_name: outletName, sales_rep: '', jumlah_dibayar: jumlah, dicatat_oleh: 'Owner' })
+                body: JSON.stringify({ form_type: 'bayar_kredit', outlet_id: outletId, outlet_name: outletName, sales_rep: '', jumlah_dibayar: jumlah, dicatat_oleh: 'Owner', metode_bayar: document.getElementById('owner_bk_metode_bayar').value })
             })
                 .then(res => res.json())
                 .then(result => {
