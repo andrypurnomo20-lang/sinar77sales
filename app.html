@@ -123,6 +123,118 @@
                         <div class="text-xs text-slate-500">Catat pelunasan / cicilan kredit outlet</div>
                     </div>
                 </button>
+
+                <button onclick="showView('pengeluaran')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-orange-400 transition">
+                    <div class="bg-orange-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Catat Pengeluaran</div>
+                        <div class="text-xs text-slate-500">BBM, parkir, retribusi, dll</div>
+                    </div>
+                </button>
+
+                <button onclick="showView('laporan')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-teal-400 transition">
+                    <div class="bg-teal-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Laporan Hari Ini</div>
+                        <div class="text-xs text-slate-500">Ringkasan closing & setoran Anda</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: CATAT PENGELUARAN ============ -->
+        <div id="view-pengeluaran" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Catat Pengeluaran</h2>
+
+                <form id="pengeluaran-form" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                        <input type="text" id="peng_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                        <button type="button" onclick="gantiSalesRep('peng')" id="peng-ganti-nama-btn" class="hidden text-[10px] text-orange-600 font-semibold mt-1">Ganti nama</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kategori *</label>
+                        <select id="peng_kategori" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="BBM">BBM</option>
+                            <option value="Parkir">Parkir</option>
+                            <option value="Retribusi">Retribusi</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Keterangan</label>
+                        <input type="text" id="peng_keterangan" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Contoh: isi bensin di SPBU Jl. Sudirman">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Jumlah (Rp) *</label>
+                        <input type="number" id="peng_jumlah" min="1" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="0">
+                        <p class="text-[10px] text-slate-400 mt-1">Otomatis mengurangi total uang yang harus Anda setor hari ini.</p>
+                    </div>
+
+                    <button type="submit" id="peng-submit-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                        <span id="peng-submit-text">Simpan Pengeluaran</span>
+                    </button>
+                </form>
+
+                <div class="mt-6 border-t pt-4">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Pengeluaran Hari Ini</h3>
+                    <div id="peng-list" class="space-y-2"></div>
+                    <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2 mt-2">
+                        <span>Total</span><span id="peng-total">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: LAPORAN HARI INI ============ -->
+        <div id="view-laporan" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Laporan Hari Ini</h2>
+                    <button onclick="loadLaporanSaya()" class="text-[10px] text-teal-600 font-semibold">Refresh</button>
+                </div>
+                <div id="laporan-saya-loading" class="text-xs text-slate-400 text-center py-8">Memuat laporan...</div>
+                <div id="laporan-saya-kosong" class="hidden text-xs text-slate-400 text-center py-8">Belum ada transaksi hari ini.</div>
+                <div id="laporan-saya-content" class="hidden space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-emerald-50 rounded-xl p-3">
+                            <div class="text-[10px] text-emerald-700 uppercase font-semibold">Total Penjualan</div>
+                            <div class="text-base font-extrabold text-emerald-800" id="ls-total-penjualan">Rp 0</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Total Item Terjual</div>
+                            <div class="text-base font-extrabold text-slate-800" id="ls-total-item">0</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Cash</div>
+                            <div class="text-base font-extrabold text-slate-800" id="ls-total-cash">Rp 0</div>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3">
+                            <div class="text-[10px] text-amber-700 uppercase font-semibold">Kredit</div>
+                            <div class="text-base font-extrabold text-amber-800" id="ls-total-kredit">Rp 0</div>
+                        </div>
+                        <div class="bg-orange-50 rounded-xl p-3">
+                            <div class="text-[10px] text-orange-700 uppercase font-semibold">Pengeluaran</div>
+                            <div class="text-base font-extrabold text-orange-800" id="ls-total-pengeluaran">Rp 0</div>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-300 uppercase font-semibold">Harus Disetor</div>
+                            <div class="text-base font-extrabold text-white" id="ls-total-setoran">Rp 0</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Closing per Outlet</h3>
+                        <div id="ls-closings-list" class="space-y-2"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -502,8 +614,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -518,6 +630,8 @@
                 loadOutlets();
             }
             loadSavedSalesRep();
+            if (name === 'pengeluaran') loadPengeluaranSaya();
+            if (name === 'laporan') loadLaporanSaya();
         }
 
         // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
@@ -592,7 +706,7 @@
         function loadSavedSalesRep() {
             const savedName = localStorage.getItem('sinar77_sales_rep');
             if (!savedName) return;
-            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep', 'bk_sales_rep'].forEach(id => {
+            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep', 'bk_sales_rep', 'peng_sales_rep'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input && !input.value) {
                     input.value = savedName;
@@ -603,13 +717,15 @@
             const v = document.getElementById('visit-ganti-nama-btn');
             const o = document.getElementById('order-ganti-nama-btn');
             const bk = document.getElementById('bk-ganti-nama-btn');
+            const peng = document.getElementById('peng-ganti-nama-btn');
             if (v) v.classList.remove('hidden');
             if (o) o.classList.remove('hidden');
             if (bk) bk.classList.remove('hidden');
+            if (peng) peng.classList.remove('hidden');
         }
 
         function gantiSalesRep(ctx) {
-            const idMap = { visit: 'visit_sales_rep', order: 'order_sales_rep', bk: 'bk_sales_rep' };
+            const idMap = { visit: 'visit_sales_rep', order: 'order_sales_rep', bk: 'bk_sales_rep', peng: 'peng_sales_rep' };
             const input = document.getElementById(idMap[ctx] || 'order_sales_rep');
             input.readOnly = false;
             input.classList.remove('bg-slate-50');
@@ -1377,6 +1493,110 @@
             document.getElementById('notification-modal').classList.remove('hidden');
         }
         function closeModal() { document.getElementById('notification-modal').classList.add('hidden'); }
+
+        // ============ CATAT PENGELUARAN ============
+        document.getElementById('pengeluaran-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const salesRep = document.getElementById('peng_sales_rep').value.trim();
+            const kategori = document.getElementById('peng_kategori').value;
+            const keterangan = document.getElementById('peng_keterangan').value.trim();
+            const jumlah = document.getElementById('peng_jumlah').value;
+
+            if (!salesRep) { showModal('Gagal', 'Sales Rep wajib diisi.'); return; }
+            if (!jumlah || Number(jumlah) <= 0) { showModal('Gagal', 'Isi jumlah dengan benar.'); return; }
+
+            const btn = document.getElementById('peng-submit-btn');
+            const txt = document.getElementById('peng-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'pengeluaran', sales_rep: salesRep, kategori, keterangan, jumlah, dicatat_oleh: 'Sales' })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Simpan Pengeluaran';
+                    if (result.status === 'success') {
+                        simpanSalesRep(salesRep);
+                        showModal('Sukses', 'Pengeluaran tersimpan.');
+                        document.getElementById('peng_keterangan').value = '';
+                        document.getElementById('peng_jumlah').value = '';
+                        loadSavedSalesRep();
+                        loadPengeluaranSaya();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Simpan Pengeluaran'; showModal('Gagal', 'Koneksi error: ' + err.message); });
+        });
+
+        function loadPengeluaranSaya() {
+            const salesRep = document.getElementById('peng_sales_rep').value.trim();
+            const container = document.getElementById('peng-list');
+            if (!salesRep) { container.innerHTML = '<p class="text-xs text-slate-400">Isi Sales Rep dulu.</p>'; return; }
+
+            fetch(`${APPS_SCRIPT_URL}?action=pengeluaran_hari_ini&sales_rep=${encodeURIComponent(salesRep)}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status !== 'success' || result.pengeluaran.length === 0) {
+                        container.innerHTML = '<p class="text-xs text-slate-400">Belum ada pengeluaran hari ini.</p>';
+                        document.getElementById('peng-total').innerText = 'Rp 0';
+                        return;
+                    }
+                    container.innerHTML = result.pengeluaran.map(p => `
+                        <div class="flex justify-between text-xs bg-slate-50 rounded-lg p-2">
+                            <span>${p.kategori}${p.keterangan ? ' - ' + p.keterangan : ''}</span>
+                            <span class="font-semibold">Rp ${p.jumlah.toLocaleString('id-ID')}</span>
+                        </div>
+                    `).join('');
+                    document.getElementById('peng-total').innerText = 'Rp ' + result.total.toLocaleString('id-ID');
+                });
+        }
+
+        // ============ LAPORAN HARI INI (SALES) ============
+        function loadLaporanSaya() {
+            const salesRep = localStorage.getItem('sinar77_sales_rep');
+            const loading = document.getElementById('laporan-saya-loading');
+            const kosong = document.getElementById('laporan-saya-kosong');
+            const content = document.getElementById('laporan-saya-content');
+
+            if (!salesRep) { loading.classList.add('hidden'); kosong.classList.remove('hidden'); kosong.innerText = 'Isi salah satu form dulu supaya nama Anda tercatat.'; return; }
+
+            loading.classList.remove('hidden');
+            kosong.classList.add('hidden');
+            content.classList.add('hidden');
+
+            fetch(`${APPS_SCRIPT_URL}?action=laporan_penutupan&sales_rep=${encodeURIComponent(salesRep)}`)
+                .then(res => res.json())
+                .then(result => {
+                    loading.classList.add('hidden');
+                    if (result.status !== 'success' || result.closings.length === 0) {
+                        kosong.classList.remove('hidden');
+                        return;
+                    }
+
+                    document.getElementById('ls-total-penjualan').innerText = 'Rp ' + result.total_penjualan.toLocaleString('id-ID');
+                    document.getElementById('ls-total-item').innerText = result.total_item_terjual;
+                    document.getElementById('ls-total-cash').innerText = 'Rp ' + result.total_cash.toLocaleString('id-ID');
+                    document.getElementById('ls-total-kredit').innerText = 'Rp ' + result.total_kredit.toLocaleString('id-ID');
+                    document.getElementById('ls-total-pengeluaran').innerText = 'Rp ' + result.total_pengeluaran.toLocaleString('id-ID');
+                    document.getElementById('ls-total-setoran').innerText = 'Rp ' + result.total_setoran.toLocaleString('id-ID');
+
+                    document.getElementById('ls-closings-list').innerHTML = result.closings.map(c => {
+                        const badge = c.metode_bayar === 'Cash'
+                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
+                            : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>`;
+                        return `<div class="flex justify-between items-center bg-slate-50 rounded-lg p-2.5 text-xs">
+                            <span class="font-medium">${c.outlet_name}</span>
+                            <div class="flex items-center gap-2">${badge}<span class="font-semibold">Rp ${c.grand_total.toLocaleString('id-ID')}</span></div>
+                        </div>`;
+                    }).join('');
+
+                    content.classList.remove('hidden');
+                })
+                .catch(() => { loading.classList.add('hidden'); kosong.classList.remove('hidden'); });
+        }
     </script>
 </body>
 </html>
