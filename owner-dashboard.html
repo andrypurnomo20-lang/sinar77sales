@@ -29,6 +29,7 @@
             <button onclick="showTab('progres')" id="tab-btn-progres" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Progres Sales Hari Ini</button>
             <button onclick="showTab('setoran')" id="tab-btn-setoran" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Setoran Harian</button>
             <button onclick="showTab('stok')" id="tab-btn-stok" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Stok Harian</button>
+            <button onclick="showTab('laporan')" id="tab-btn-laporan" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-400">Laporan Penutupan</button>
         </div>
     </header>
 
@@ -401,6 +402,86 @@
         </div>
         <!-- ============ /TAB: STOK HARIAN ============ -->
 
+        <!-- ============ TAB: LAPORAN PENUTUPAN ============ -->
+        <div id="tab-laporan" class="tab-panel hidden">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 max-w-3xl">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-1">Laporan Penutupan Harian</h2>
+                <p class="text-xs text-slate-500 -mt-2">Rincian lengkap penjualan 1 sales di 1 tanggal — per transaksi, ringkasan cash/kredit/penagihan/setoran, dan total per produk.</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tanggal</label>
+                        <input type="date" id="laporan_tanggal" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
+                        <select id="laporan_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="loadLaporanPenutupan()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold py-2.5 rounded-xl">
+                    Tampilkan Laporan
+                </button>
+
+                <div id="laporan-loading" class="hidden text-xs text-slate-400 text-center py-8">Memuat laporan...</div>
+                <div id="laporan-kosong" class="hidden text-xs text-slate-400 text-center py-8">Belum ada transaksi untuk sales & tanggal ini.</div>
+
+                <div id="laporan-content" class="hidden space-y-4">
+                    <!-- Ringkasan Angka -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="bg-emerald-50 rounded-xl p-3">
+                            <div class="text-[10px] text-emerald-700 uppercase font-semibold">Total Penjualan</div>
+                            <div class="text-lg font-extrabold text-emerald-800" id="lap-total-penjualan">Rp 0</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Total Cash (Order)</div>
+                            <div class="text-lg font-extrabold text-slate-800" id="lap-total-cash">Rp 0</div>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3">
+                            <div class="text-[10px] text-amber-700 uppercase font-semibold">Total Kredit</div>
+                            <div class="text-lg font-extrabold text-amber-800" id="lap-total-kredit">Rp 0</div>
+                        </div>
+                        <div class="bg-sky-50 rounded-xl p-3">
+                            <div class="text-[10px] text-sky-700 uppercase font-semibold">Total Penagihan Kredit</div>
+                            <div class="text-lg font-extrabold text-sky-800" id="lap-total-penagihan">Rp 0</div>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-3 col-span-2">
+                            <div class="text-[10px] text-slate-300 uppercase font-semibold">Total Uang Harus Disetor (Cash Order + Penagihan Cash)</div>
+                            <div class="text-xl font-extrabold text-white" id="lap-total-setoran">Rp 0</div>
+                        </div>
+                    </div>
+
+                    <!-- Detail per Outlet/Transaksi -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Detail Closing per Outlet</h3>
+                        <div id="lap-closings-list" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Total per Produk -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Total Penjualan per Produk (Hari Ini)</h3>
+                        <table class="w-full text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-left">
+                                    <th class="p-2 rounded-l-lg">Produk</th>
+                                    <th class="p-2 text-center">Qty Terjual</th>
+                                    <th class="p-2 text-center rounded-r-lg">Omzet</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lap-item-summary-body"></tbody>
+                        </table>
+                    </div>
+
+                    <button onclick="window.print()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-2.5 rounded-xl">
+                        Cetak / Simpan sebagai PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- ============ /TAB: LAPORAN PENUTUPAN ============ -->
+
     </main>
 
     <script>
@@ -433,13 +514,14 @@
         let progresSudahDimuat = false;
         let setoranSudahDimuat = false;
         let stokSudahDimuat = false;
+        let laporanSudahDimuat = false;
         let daftarProdukStok = []; // daftar nama produk dari PRICE LIST, dipakai buat form stok pagi
 
         function showTab(name) {
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
 
-            ['dashboard', 'progres', 'setoran', 'stok'].forEach(t => {
+            ['dashboard', 'progres', 'setoran', 'stok', 'laporan'].forEach(t => {
                 const btn = document.getElementById('tab-btn-' + t);
                 if (t === name) { btn.classList.add('border-emerald-400', 'text-white'); btn.classList.remove('border-transparent', 'text-slate-400'); }
                 else { btn.classList.remove('border-emerald-400', 'text-white'); btn.classList.add('border-transparent', 'text-slate-400'); }
@@ -452,6 +534,7 @@
             if (name === 'progres' && !progresSudahDimuat) { progresSudahDimuat = true; loadProgresSalesHariIni(); }
             if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); }
             if (name === 'stok' && !stokSudahDimuat) { stokSudahDimuat = true; initStokTab(); }
+            if (name === 'laporan' && !laporanSudahDimuat) { laporanSudahDimuat = true; initLaporanTab(); }
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
@@ -746,6 +829,84 @@
                     }
                 })
                 .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Penerimaan Pabrik'; alert('Koneksi error: ' + err.message); });
+        }
+
+        // ============ TAB: LAPORAN PENUTUPAN ============
+        function initLaporanTab() {
+            document.getElementById('laporan_tanggal').value = tglLokal(new Date());
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_sales`)
+                .then(result => {
+                    const select = document.getElementById('laporan_sales_rep');
+                    if (result.status === 'success' && result.sales.length > 0) {
+                        select.innerHTML = '<option value="">-- Pilih Sales --</option>' + result.sales.map(s => `<option value="${s}">${s}</option>`).join('');
+                    } else {
+                        select.innerHTML = '<option value="">Belum ada data sales</option>';
+                    }
+                });
+        }
+
+        function loadLaporanPenutupan() {
+            const tanggal = document.getElementById('laporan_tanggal').value;
+            const salesRep = document.getElementById('laporan_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            document.getElementById('laporan-loading').classList.remove('hidden');
+            document.getElementById('laporan-kosong').classList.add('hidden');
+            document.getElementById('laporan-content').classList.add('hidden');
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=laporan_penutupan&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
+                .then(result => {
+                    document.getElementById('laporan-loading').classList.add('hidden');
+                    if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
+
+                    if (result.closings.length === 0) {
+                        document.getElementById('laporan-kosong').classList.remove('hidden');
+                        return;
+                    }
+
+                    document.getElementById('lap-total-penjualan').innerText = rupiah(result.total_penjualan);
+                    document.getElementById('lap-total-cash').innerText = rupiah(result.total_cash);
+                    document.getElementById('lap-total-kredit').innerText = rupiah(result.total_kredit);
+                    document.getElementById('lap-total-penagihan').innerText = rupiah(result.total_penagihan_kredit);
+                    document.getElementById('lap-total-setoran').innerText = rupiah(result.total_setoran);
+
+                    document.getElementById('lap-closings-list').innerHTML = result.closings.map(c => {
+                        const metodeBadge = c.metode_bayar === 'Cash'
+                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
+                            : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit — ${c.status_pembayaran}</span>`;
+                        return `
+                            <div class="border border-slate-200 rounded-xl p-3">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-slate-800 text-sm">${c.outlet_name}</span>
+                                    ${metodeBadge}
+                                </div>
+                                <table class="w-full text-xs mb-2">
+                                    ${c.items.map(it => `
+                                        <tr class="border-b border-slate-100">
+                                            <td class="py-1">${it.item}</td>
+                                            <td class="py-1 text-center text-slate-500">${it.qty} x ${rupiah(it.price)}</td>
+                                            <td class="py-1 text-right font-semibold">${rupiah(it.total)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </table>
+                                <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2">
+                                    <span>Total</span><span>${rupiah(c.grand_total)}</span>
+                                </div>
+                                ${c.metode_bayar === 'Kredit' ? `<div class="text-[10px] text-amber-600 mt-1">Jatuh tempo: ${c.jatuh_tempo || '-'}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+
+                    document.getElementById('lap-item-summary-body').innerHTML = result.item_summary.map(it => `
+                        <tr class="border-b border-slate-100">
+                            <td class="p-2">${it.item}</td>
+                            <td class="p-2 text-center">${it.qty}</td>
+                            <td class="p-2 text-center font-semibold">${rupiah(it.omzet)}</td>
+                        </tr>
+                    `).join('');
+
+                    document.getElementById('laporan-content').classList.remove('hidden');
+                });
         }
 
         function loadStokTabel() {
