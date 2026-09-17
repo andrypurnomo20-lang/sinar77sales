@@ -368,6 +368,36 @@
                 </div>
                 <p class="text-[10px] text-slate-400">Isi kolom "Dibawa (Pagi)" untuk catat barang berangkat, atau kolom "Sisa Fisik (Sore)" untuk catat hasil hitung pulang — isi salah satu sesuai waktu, lalu klik tombol yang sesuai.</p>
             </div>
+
+            <!-- Stok Depo (Pabrik -> Depo -> Kanvas) -->
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-indigo-200 space-y-4 max-w-3xl mt-6">
+                <h2 class="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-1">Stok Depo Saat Ini</h2>
+                <p class="text-xs text-slate-500 -mt-2">Otomatis berkurang saat sales ambil Stok Pagi, otomatis bertambah saat ada penerimaan dari Pabrik atau barang kembali (Stok Sore tidak laku).</p>
+
+                <div id="depo-loading" class="text-xs text-slate-400">Memuat saldo Depo...</div>
+                <div id="depo-tabel-wrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-indigo-50 text-left">
+                                <th class="p-2 rounded-l-lg">Produk</th>
+                                <th class="p-2 text-center rounded-r-lg">Saldo di Depo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="depo-tabel-body"></tbody>
+                    </table>
+                </div>
+                <button onclick="loadStokDepo()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-2 rounded-xl">
+                    Refresh Saldo Depo
+                </button>
+
+                <div class="border-t border-slate-200 pt-4">
+                    <h3 class="text-xs font-bold uppercase text-slate-600 mb-2">Catat Penerimaan dari Pabrik</h3>
+                    <div id="pengiriman-pabrik-inputs" class="space-y-2 mb-3"></div>
+                    <button onclick="simpanPengirimanPabrik()" id="pengiriman-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm">
+                        Simpan Penerimaan Pabrik
+                    </button>
+                </div>
+            </div>
         </div>
         <!-- ============ /TAB: STOK HARIAN ============ -->
 
@@ -461,6 +491,22 @@
                         </div>
                     `).join('');
 
+                const stokHtml = (!s.stok || s.stok.length === 0)
+                    ? '<p class="text-xs text-slate-400">Belum ada stok pagi tercatat.</p>'
+                    : `<table class="w-full text-xs">
+                        <thead><tr class="text-slate-400 text-left"><th class="pb-1">Produk</th><th class="pb-1 text-center">Dibawa</th><th class="pb-1 text-center">Terjual</th><th class="pb-1 text-center">Sisa</th></tr></thead>
+                        <tbody>
+                        ${s.stok.map(p => `
+                            <tr class="border-t border-slate-100">
+                                <td class="py-1">${p.produk}</td>
+                                <td class="py-1 text-center">${p.qty_dibawa}</td>
+                                <td class="py-1 text-center text-slate-500">${p.qty_terjual}</td>
+                                <td class="py-1 text-center font-semibold ${p.sisa_sistem <= 0 ? 'text-red-600' : 'text-slate-800'}">${p.sisa_sistem}${p.sisa_sistem <= 0 ? ' (HABIS)' : ''}</td>
+                            </tr>
+                        `).join('')}
+                        </tbody>
+                    </table>`;
+
                 return `
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="flex justify-between items-center mb-3">
@@ -484,6 +530,8 @@
                                 <div class="font-bold text-slate-800 text-[11px]">${rupiah(s.total_omzet)}</div>
                             </div>
                         </div>
+                        <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Stok Bawaan Real-time</div>
+                        <div class="mb-4">${stokHtml}</div>
                         <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Timeline Kunjungan & Jeda Waktu</div>
                         ${timelineHtml}
                     </div>
@@ -628,11 +676,76 @@
                     }
                 });
 
-            // Ambil daftar produk dari PRICE LIST untuk form input pagi
+            // Ambil daftar produk dari PRICE LIST untuk form input pagi + form pengiriman pabrik
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=price_list`)
                 .then(result => {
-                    if (result.status === 'success') daftarProdukStok = result.products.map(p => p.nama);
+                    if (result.status === 'success') {
+                        daftarProdukStok = result.products.map(p => p.nama);
+                        renderInputPengirimanPabrik();
+                    }
                 });
+
+            loadStokDepo();
+        }
+
+        // ============ STOK DEPO ============
+        function loadStokDepo() {
+            document.getElementById('depo-loading').classList.remove('hidden');
+            document.getElementById('depo-tabel-wrapper').classList.add('hidden');
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=stok_depo`)
+                .then(result => {
+                    document.getElementById('depo-loading').classList.add('hidden');
+                    if (result.status !== 'success') return;
+
+                    const tbody = document.getElementById('depo-tabel-body');
+                    tbody.innerHTML = result.stok.map(s => `
+                        <tr class="border-b border-slate-100">
+                            <td class="p-2">${s.produk}</td>
+                            <td class="p-2 text-center font-semibold ${s.saldo <= 0 ? 'text-red-600' : 'text-slate-800'}">${s.saldo}${s.saldo <= 0 ? ' (HABIS)' : ''}</td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('depo-tabel-wrapper').classList.remove('hidden');
+                });
+        }
+
+        function renderInputPengirimanPabrik() {
+            const container = document.getElementById('pengiriman-pabrik-inputs');
+            container.innerHTML = daftarProdukStok.map(produk => `
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-600 flex-grow">${produk}</span>
+                    <input type="number" min="0" class="pengiriman-input w-20 text-center border border-slate-300 rounded-lg px-2 py-1.5 text-sm" data-produk="${produk}" placeholder="0">
+                </div>
+            `).join('');
+        }
+
+        function simpanPengirimanPabrik() {
+            const items = Array.from(document.querySelectorAll('.pengiriman-input'))
+                .map(input => ({ produk: input.dataset.produk, qty: input.value }))
+                .filter(x => x.qty !== '' && Number(x.qty) > 0);
+
+            if (items.length === 0) { alert('Isi minimal 1 produk yang diterima.'); return; }
+
+            const btn = document.getElementById('pengiriman-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'pengiriman_pabrik', items, dicatat_oleh: 'Owner' })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Simpan Penerimaan Pabrik';
+                    if (result.status === 'success') {
+                        alert('Penerimaan pabrik tersimpan, saldo Depo ter-update.');
+                        document.querySelectorAll('.pengiriman-input').forEach(i => i.value = '');
+                        loadStokDepo();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Penerimaan Pabrik'; alert('Koneksi error: ' + err.message); });
         }
 
         function loadStokTabel() {
