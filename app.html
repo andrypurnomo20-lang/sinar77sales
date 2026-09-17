@@ -396,15 +396,6 @@
                         <button type="button" onclick="gantiSalesRep('order')" id="order-ganti-nama-btn" class="hidden text-[10px] text-amber-600 font-semibold mt-1">Ganti nama</button>
                     </div>
 
-                    <!-- Stok Saya Hari Ini -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-bold uppercase text-slate-600">Stok Saya Hari Ini</span>
-                            <button type="button" onclick="loadStokSaya()" class="text-[10px] text-indigo-600 font-semibold">Refresh</button>
-                        </div>
-                        <div id="stok-saya-list" class="text-xs text-slate-500">Isi Sales Rep dulu untuk lihat stok.</div>
-                    </div>
-
                     <!-- GPS Check-in -->
                     <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 space-y-2">
                         <div class="flex justify-between items-center">
@@ -527,42 +518,6 @@
                 loadOutlets();
             }
             loadSavedSalesRep();
-            if (name === 'order') loadStokSaya();
-        }
-
-        // Ambil status stok bawaan hari ini untuk sales yang sedang isi form, tampilkan real-time.
-        function loadStokSaya() {
-            const salesRep = document.getElementById('order_sales_rep').value.trim();
-            const container = document.getElementById('stok-saya-list');
-            if (!salesRep) { container.innerText = 'Isi Sales Rep dulu untuk lihat stok.'; return; }
-
-            container.innerText = 'Memuat...';
-            const tanggal = tglLokalApp(new Date());
-
-            fetch(`${APPS_SCRIPT_URL}?action=stok_hari_ini&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
-                .then(res => res.json())
-                .then(result => {
-                    if (result.status !== 'success' || result.stok.length === 0) {
-                        container.innerText = 'Belum ada stok pagi tercatat untuk Anda hari ini — tanyakan ke Owner.';
-                        return;
-                    }
-                    container.innerHTML = result.stok.map(s => {
-                        const habis = s.sisa_sistem <= 0;
-                        return `<div class="flex justify-between py-0.5 ${habis ? 'text-red-600 font-semibold' : ''}">
-                            <span>${s.produk}</span>
-                            <span>${s.sisa_sistem} / ${s.qty_dibawa}${habis ? ' (HABIS)' : ''}</span>
-                        </div>`;
-                    }).join('');
-                })
-                .catch(() => { container.innerText = 'Gagal memuat stok.'; });
-        }
-
-        // Tanggal lokal format yyyy-MM-dd (bukan toISOString yang bisa geser -1 hari karena UTC)
-        function tglLokalApp(d) {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
         }
 
         // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
@@ -1389,7 +1344,6 @@
                         document.getElementById('order-gps-status').className = 'text-xs text-slate-500';
                         document.getElementById('order-tipe-info').innerText = '';
                         loadSavedSalesRep();
-                        loadStokSaya(); // stok berkurang setelah order ini, refresh biar sales lihat angka terbaru
                     } else {
                         showModal('Gagal', 'Error: ' + result.message);
                     }
