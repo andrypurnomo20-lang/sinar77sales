@@ -143,6 +143,50 @@
                         <div class="text-xs text-slate-500">Ringkasan closing & setoran Anda</div>
                     </div>
                 </button>
+
+                <button onclick="showView('bulanan')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-indigo-400 transition">
+                    <div class="bg-indigo-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Progres Bulanan</div>
+                        <div class="text-xs text-slate-500">Pilih bulan untuk lihat progres</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: PROGRES BULANAN ============ -->
+        <div id="view-bulanan" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Progres Bulanan</h2>
+
+                <div class="flex gap-2 mb-4">
+                    <select id="bulan_pilihan" class="flex-grow px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white"></select>
+                    <button onclick="loadBulanProgress()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 rounded-xl">Tampilkan</button>
+                </div>
+
+                <div id="bulan-loading" class="text-xs text-slate-400 text-center py-8">Memuat progres bulanan...</div>
+
+                <div id="bulan-content" class="hidden space-y-3">
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-sm text-slate-600">Kunjungan</span>
+                            <span class="text-sm font-bold text-slate-800"><span id="bv-kunjungan">0</span> / <span id="bv-target">500</span> (<span id="bv-persen">0</span>%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div id="bv-bar" class="bg-indigo-500 h-2.5 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-xl p-3">
+                        <div class="text-[10px] text-slate-500 uppercase mb-1">Total Item Terjual Bulan Ini</div>
+                        <div id="bv-item-detail" class="text-xs text-slate-500 space-y-0.5 mb-2"></div>
+                        <div class="text-lg font-extrabold text-slate-800 border-t border-slate-200 pt-1.5" id="bv-item-total">0</div>
+                    </div>
+                </div>
+
+                <div id="bulan-empty" class="hidden text-xs text-slate-400 text-center py-8">Isi salah satu form dulu supaya nama sales tercatat, baru progres bisa ditampilkan.</div>
             </div>
         </div>
 
@@ -433,6 +477,16 @@
                         <a id="visit-navigate-link" href="#" target="_blank" class="hidden mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm items-center justify-center transition">
                             Buka Rute ke Outlet Ini
                         </a>
+                        <div id="visit-phone-actions" class="hidden mt-2 grid grid-cols-2 gap-2">
+                            <a id="visit-call-link" href="#" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                Telepon
+                            </a>
+                            <a id="visit-wa-link" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm0 18.13c-1.51 0-2.99-.4-4.29-1.16l-.31-.18-3.19.84.85-3.11-.2-.32a8.19 8.19 0 01-1.26-4.39c0-4.54 3.69-8.23 8.24-8.23 4.54 0 8.23 3.69 8.23 8.23 0 4.55-3.69 8.32-8.27 8.32z"></path></svg>
+                                WhatsApp
+                            </a>
+                        </div>
                     </div>
 
                     <div>
@@ -614,8 +668,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini', bulanan: 'Progres Bulanan' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda', bulanan: 'Pilih bulan untuk lihat progres' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -632,6 +686,7 @@
             loadSavedSalesRep();
             if (name === 'pengeluaran') loadPengeluaranSaya();
             if (name === 'laporan') loadLaporanSaya();
+            if (name === 'bulanan') { isiDropdownBulan(); loadBulanProgress(); }
         }
 
         // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
@@ -699,6 +754,67 @@
                     document.getElementById('pv-omzet').innerText = 'Rp ' + result.total_omzet.toLocaleString('id-ID');
                     document.getElementById('pv-cash').innerText = 'Rp ' + result.total_cash.toLocaleString('id-ID');
                     document.getElementById('pv-kredit').innerText = 'Rp ' + result.total_kredit.toLocaleString('id-ID');
+                })
+                .catch(() => { loading.classList.add('hidden'); empty.classList.remove('hidden'); });
+        }
+
+        // Kartu Progres Bulan Ini di menu utama
+        // Isi dropdown pilihan bulan: bulan berjalan + 5 bulan ke belakang
+        function isiDropdownBulan() {
+            const select = document.getElementById('bulan_pilihan');
+            if (select.options.length > 0) return; // sudah pernah diisi, tidak perlu ulang
+
+            const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            const today = new Date();
+            let optionsHtml = '';
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const label = `${namaBulan[d.getMonth()]} ${d.getFullYear()}`;
+                optionsHtml += `<option value="${value}">${label}</option>`;
+            }
+            select.innerHTML = optionsHtml;
+        }
+
+        function loadBulanProgress() {
+            const savedName = localStorage.getItem('sinar77_sales_rep');
+            const loading = document.getElementById('bulan-loading');
+            const content = document.getElementById('bulan-content');
+            const empty = document.getElementById('bulan-empty');
+            const bulanDipilih = document.getElementById('bulan_pilihan').value;
+
+            if (!savedName) {
+                loading.classList.add('hidden');
+                content.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            empty.classList.add('hidden');
+
+            fetch(`${APPS_SCRIPT_URL}?action=progress_bulan_ini&sales_rep=${encodeURIComponent(savedName)}&bulan=${bulanDipilih}`)
+                .then(res => res.json())
+                .then(result => {
+                    loading.classList.add('hidden');
+                    if (result.status !== 'success') { empty.classList.remove('hidden'); return; }
+
+                    content.classList.remove('hidden');
+                    document.getElementById('bv-kunjungan').innerText = result.total_kunjungan_bulan;
+                    document.getElementById('bv-target').innerText = result.target_bulanan;
+                    document.getElementById('bv-persen').innerText = result.persen_target_bulanan;
+                    document.getElementById('bv-bar').style.width = Math.min(result.persen_target_bulanan, 100) + '%';
+
+                    // Tampilkan detail per produk dulu, baru total gabungannya — sesuai cara hitung yang diminta
+                    if (result.item_summary_bulan.length === 0) {
+                        document.getElementById('bv-item-detail').innerHTML = '<p class="text-slate-400">Belum ada penjualan bulan ini.</p>';
+                    } else {
+                        document.getElementById('bv-item-detail').innerHTML = result.item_summary_bulan.map(it =>
+                            `<div class="flex justify-between"><span>${it.item}</span><span>${it.qty}</span></div>`
+                        ).join('');
+                    }
+                    document.getElementById('bv-item-total').innerText = result.total_item_terjual_bulan + ' item';
                 })
                 .catch(() => { loading.classList.add('hidden'); empty.classList.remove('hidden'); });
         }
@@ -881,7 +997,7 @@
             if (!select) return;
             if (outlets.length === 0) { select.innerHTML = '<option value="">Tidak ada outlet ditemukan</option>'; return; }
             select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}" data-phone="${o.phone || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
         }
 
         // ============ PENCARIAN OUTLET TOLERAN TYPO (FUZZY SEARCH) ============
@@ -1116,6 +1232,19 @@
                 link.classList.remove('hidden'); link.classList.add('flex');
             } else {
                 link.classList.add('hidden'); link.classList.remove('flex');
+            }
+
+            // Tombol Telepon & WhatsApp — cuma muncul kalau outlet ini punya nomor HP tersimpan
+            const phoneActions = document.getElementById('visit-phone-actions');
+            const phoneRaw = (sel.dataset.phone || '').trim();
+            if (phoneRaw) {
+                document.getElementById('visit-call-link').href = `tel:${phoneRaw}`;
+                // Konversi format nomor HP Indonesia (08xx) ke format internasional (628xx) untuk link wa.me
+                const phoneWa = phoneRaw.startsWith('0') ? '62' + phoneRaw.substring(1) : phoneRaw.replace(/\D/g, '');
+                document.getElementById('visit-wa-link').href = `https://wa.me/${phoneWa}`;
+                phoneActions.classList.remove('hidden'); phoneActions.classList.add('grid');
+            } else {
+                phoneActions.classList.add('hidden'); phoneActions.classList.remove('grid');
             }
         });
 
