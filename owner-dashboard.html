@@ -64,6 +64,41 @@
                 </div>
             </section>
 
+            <!-- Posisi Kas (Semua Waktu) -->
+            <section>
+                <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Posisi Kas (Semua Waktu)</h2>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                        <div class="bg-emerald-50 rounded-xl p-3">
+                            <div class="text-[10px] text-emerald-700 uppercase">Pemasukan Cash</div>
+                            <div class="text-sm font-bold text-emerald-800" id="kas-pemasukan-cash">Rp 0</div>
+                        </div>
+                        <div class="bg-sky-50 rounded-xl p-3">
+                            <div class="text-[10px] text-sky-700 uppercase">Penagihan Kredit</div>
+                            <div class="text-sm font-bold text-sky-800" id="kas-penagihan">Rp 0</div>
+                        </div>
+                        <div class="bg-orange-50 rounded-xl p-3">
+                            <div class="text-[10px] text-orange-700 uppercase">Pengeluaran</div>
+                            <div class="text-sm font-bold text-orange-800" id="kas-pengeluaran">Rp 0</div>
+                        </div>
+                        <div class="bg-slate-100 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-500 uppercase">Saldo Rekening</div>
+                            <div class="text-sm font-bold text-slate-700" id="kas-rekening">Rp 0</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <div class="flex-1 bg-slate-800 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-300 uppercase">Uang Fisik (Cash di Tangan)</div>
+                            <div class="text-lg font-extrabold text-white" id="kas-uang-fisik">Rp 0</div>
+                        </div>
+                        <div class="flex-1 bg-slate-900 rounded-xl p-3">
+                            <div class="text-[10px] text-slate-400 uppercase">Total Uang (Fisik + Rekening)</div>
+                            <div class="text-lg font-extrabold text-white" id="kas-total-uang">Rp 0</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- KPI Periode -->
             <section>
                 <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Aktivitas Periode Terpilih</h2>
@@ -519,9 +554,17 @@
             document.getElementById('end_date').value = tglLokal(today);
             document.getElementById('setoran_tanggal').value = tglLokal(today);
 
-            // Cuma muat tab yang sedang aktif (Dashboard) dulu — 3 request bersamaan ke Apps Script
-            // ternyata saling antre di server, jadi malah lebih lambat daripada muat satu-satu.
-            loadDashboard();
+            // "Ping" ringan dulu buat memancing Apps Script bangun dari kondisi idle/cold-start,
+            // BARU kirim request Dashboard yang berat. Sengaja berurutan (bukan bersamaan) —
+            // 2 request sekaligus ke Apps Script terbukti saling antre dan malah lebih lambat.
+            const pingController = new AbortController();
+            const pingTimeout = setTimeout(() => pingController.abort(), 4000);
+            fetch(APPS_SCRIPT_URL, { signal: pingController.signal, cache: 'no-store' })
+                .catch(() => {}) // ping ini cuma buat pemanasan, hasil/gagalnya tidak penting
+                .finally(() => {
+                    clearTimeout(pingTimeout);
+                    loadDashboard();
+                });
         }
 
         // ============ NAVIGASI TAB ============
@@ -1146,9 +1189,11 @@
         // Ambil data dengan retry otomatis — Apps Script kadang gagal di percobaan pertama
         // (404 di redirect internal Google), tapi biasanya langsung sukses kalau dicoba ulang.
         function fetchDenganRetry(url, percobaanTersisa) {
-            if (percobaanTersisa === undefined) percobaanTersisa = 2;
+            if (percobaanTersisa === undefined) percobaanTersisa = 3;
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            // Timeout dipendekkan: kalau request macet di lompatan redirect Google, gagal cepat
+            // dan langsung coba ulang biasanya lebih cepat daripada menunggu 15 detik penuh.
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             return fetch(url, { signal: controller.signal, cache: 'no-store' })
                 .then(res => {
@@ -1159,7 +1204,7 @@
                 .catch(err => {
                     clearTimeout(timeoutId);
                     if (percobaanTersisa > 0) {
-                        return new Promise(resolve => setTimeout(resolve, 800))
+                        return new Promise(resolve => setTimeout(resolve, 400))
                             .then(() => fetchDenganRetry(url, percobaanTersisa - 1));
                     }
                     throw err;
@@ -1198,6 +1243,14 @@
             document.getElementById('kpi-active-outlet').innerText = d.outlet_summary.active;
             document.getElementById('kpi-new-outlet').innerText = d.outlet_summary.new_outlet_periode;
             document.getElementById('kpi-piutang').innerText = rupiah(d.piutang_outstanding);
+
+            // Posisi Kas
+            document.getElementById('kas-pemasukan-cash').innerText = rupiah(d.posisi_kas.total_pemasukan_cash);
+            document.getElementById('kas-penagihan').innerText = rupiah(d.posisi_kas.total_penagihan_cash + d.posisi_kas.total_penagihan_transfer);
+            document.getElementById('kas-pengeluaran').innerText = rupiah(d.posisi_kas.total_pengeluaran);
+            document.getElementById('kas-rekening').innerText = rupiah(d.posisi_kas.saldo_rekening);
+            document.getElementById('kas-uang-fisik').innerText = rupiah(d.posisi_kas.uang_fisik);
+            document.getElementById('kas-total-uang').innerText = rupiah(d.posisi_kas.total_uang);
 
             document.getElementById('kpi-visit').innerText = d.totals.total_visit;
             document.getElementById('kpi-order').innerText = d.totals.total_order;
