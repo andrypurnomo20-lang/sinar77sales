@@ -244,9 +244,14 @@
                     </div>
                 </div>
 
-                <div class="bg-slate-800 text-white rounded-xl p-4 flex justify-between items-center">
+                <div class="bg-slate-800 text-white rounded-xl p-4 flex justify-between items-center mb-4">
                     <span class="text-sm font-semibold">Grand Total Bonus Periode Ini</span>
                     <span class="text-xl font-extrabold" id="bonus-grand-total">Rp 0</span>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-slate-500 mb-2">Rincian per Sales</h4>
+                    <div id="bonus-per-sales-list" class="space-y-2"></div>
                 </div>
             </section>
 
@@ -1325,6 +1330,24 @@
             document.getElementById('bonus-repeat-per-tipe').innerHTML = renderBonusPerTipe(bonus.repeat.per_tipe);
 
             document.getElementById('bonus-grand-total').innerText = rupiah(bonus.grand_total_bonus);
+
+            const perSalesList = document.getElementById('bonus-per-sales-list');
+            if (!bonus.per_sales || bonus.per_sales.length === 0) {
+                perSalesList.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Belum ada Trial/Repeat Order di periode ini.</p>';
+            } else {
+                perSalesList.innerHTML = bonus.per_sales.map(s => `
+                    <div class="border border-slate-200 rounded-xl p-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-slate-800 text-sm">${s.sales_rep}</span>
+                            <span class="font-extrabold text-emerald-700">${rupiah(s.total_bonus)}</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500">
+                            <span>Trial: ${s.trial_outlet} outlet (${rupiah(s.bonus_trial)})</span>
+                            <span>Repeat: ${s.repeat_outlet} outlet (${rupiah(s.bonus_repeat)})</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
 
         function renderBonusPerTipe(perTipe) {
