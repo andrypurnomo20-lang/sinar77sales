@@ -153,6 +153,16 @@
                         <div class="text-xs text-slate-500">Pilih bulan untuk lihat progres</div>
                     </div>
                 </button>
+
+                <button onclick="showView('kirim')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-sky-400 transition">
+                    <div class="bg-sky-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Konfirmasi Pengiriman</div>
+                        <div class="text-xs text-slate-500">Selesaikan order yang menunggu diantar</div>
+                    </div>
+                </button>
             </div>
         </div>
 
@@ -235,6 +245,75 @@
                         <span>Total</span><span id="peng-total">Rp 0</span>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: KONFIRMASI PENGIRIMAN ============ -->
+        <div id="view-kirim" class="view">
+            <div id="kirim-list-section" class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Order Menunggu Kirim</h2>
+                    <button onclick="loadMenungguKirim()" class="text-[10px] text-sky-600 font-semibold">Refresh</button>
+                </div>
+                <div id="kirim-loading" class="text-xs text-slate-400 text-center py-8">Memuat daftar...</div>
+                <div id="kirim-kosong" class="hidden text-xs text-slate-400 text-center py-8">Tidak ada order yang menunggu kirim.</div>
+                <div id="kirim-list" class="space-y-3"></div>
+            </div>
+
+            <div id="kirim-detail-section" class="hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Konfirmasi Pengiriman</h2>
+                    <button onclick="batalKonfirmasiKirim()" class="text-[10px] text-slate-500 font-semibold">← Kembali ke Daftar</button>
+                </div>
+
+                <div class="mb-3">
+                    <div class="font-bold text-slate-800" id="kirim-detail-outlet"></div>
+                    <p class="text-[10px] text-slate-400">Boleh ubah qty/item/metode bayar kalau pelanggan berubah pikiran — versi final yang tersimpan.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales / Petugas Antar *</label>
+                    <input type="text" id="kirim_sales_rep" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm mb-3" placeholder="Nama Anda">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran *</label>
+                    <select id="kirim_metode_bayar" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white mb-3">
+                        <option value="Cash">Cash</option>
+                        <option value="Kredit">Kredit (7 hari)</option>
+                    </select>
+                </div>
+
+                <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Item Pesanan</label>
+                <div id="kirim-cart-list" class="space-y-2 mb-3"></div>
+
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 mb-3">
+                    <label class="block text-[10px] font-bold uppercase text-slate-600">Tambah Item Baru</label>
+                    <select id="kirim_item_baru" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white">
+                        <option value="">-- Pilih Produk --</option>
+                    </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="kirim_qty_baru" min="0.5" step="0.5" placeholder="Qty" class="px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                        <button type="button" onclick="tambahItemKirim()" class="bg-slate-700 text-white text-xs font-semibold rounded-lg">+ Tambah</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-2 mb-4">
+                    <span>Grand Total</span><span id="kirim-grand-total">Rp 0</span>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 mb-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-emerald-800">Check-in Lokasi Pengantaran</span>
+                        <button type="button" id="kirim-gps-btn" onclick="getLocationGPS_kirim()" class="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Check-in Sekarang</button>
+                    </div>
+                    <p id="kirim-gps-status" class="text-xs text-emerald-700">Belum check-in. Wajib check-in dulu sebelum submit.</p>
+                    <input type="hidden" id="kirim_gps_checkin">
+                </div>
+
+                <button onclick="submitKonfirmasiKirim()" id="kirim-submit-btn" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-sm shadow-md">
+                    <span id="kirim-submit-text">Konfirmasi Barang Terkirim</span>
+                </button>
             </div>
         </div>
 
@@ -572,9 +651,19 @@
                         <input type="hidden" id="order_gps_checkin">
                     </div>
 
+                    <!-- Status Pengiriman: langsung serah sekarang, atau nanti menyusul (petugas antar beda waktu/orang) -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Barang Langsung Diserahkan Sekarang? *</label>
+                        <select id="langsung_serah" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="toggleLangsungSerah()">
+                            <option value="Ya">Ya, langsung diserahkan sekarang</option>
+                            <option value="Tidak">Tidak, barang menyusul (kirim belakangan)</option>
+                        </select>
+                        <p id="menunggu-kirim-info" class="hidden text-[10px] text-amber-600 mt-1">Order ini akan masuk daftar "Menunggu Kirim" — stok & pembayaran baru final saat dikonfirmasi lewat menu Konfirmasi Pengiriman nanti.</p>
+                    </div>
+
                     <!-- Metode Pembayaran (dipilih SEBELUM tambah produk, karena diskon Cash beda dengan Kredit) -->
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran *</label>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Metode Pembayaran (Rencana) *</label>
                         <select id="metode_bayar" required class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white" onchange="toggleKredit(); recalcCartDiskon();">
                             <option value="Cash">Cash</option>
                             <option value="Kredit">Kredit (7 hari)</option>
@@ -668,8 +757,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini', bulanan: 'Progres Bulanan' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda', bulanan: 'Pilih bulan untuk lihat progres' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini', bulanan: 'Progres Bulanan', kirim: 'Konfirmasi Pengiriman' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda', bulanan: 'Pilih bulan untuk lihat progres', kirim: 'Selesaikan order yang menunggu diantar' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -687,6 +776,7 @@
             if (name === 'pengeluaran') loadPengeluaranSaya();
             if (name === 'laporan') loadLaporanSaya();
             if (name === 'bulanan') { isiDropdownBulan(); loadBulanProgress(); }
+            if (name === 'kirim') { batalKonfirmasiKirim(); loadMenungguKirim(); }
         }
 
         // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
@@ -1522,6 +1612,11 @@
             document.getElementById('kredit-info').classList.toggle('hidden', !isKredit);
         }
 
+        function toggleLangsungSerah() {
+            const tidakLangsung = document.getElementById('langsung_serah').value === 'Tidak';
+            document.getElementById('menunggu-kirim-info').classList.toggle('hidden', !tidakLangsung);
+        }
+
         function getLocationGPS_order() {
             if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
             const btn = document.getElementById('order-gps-btn');
@@ -1537,6 +1632,196 @@
                 () => { document.getElementById('order-gps-status').innerText = 'Gagal ambil lokasi. Coba lagi.'; btn.disabled = false; },
                 { enableHighAccuracy: true, timeout: 8000 }
             );
+        }
+
+        // ============ KONFIRMASI PENGIRIMAN ============
+        let daftarMenungguKirim = [];
+        let orderTerpilihKirim = null;
+        let kirimCart = [];
+
+        function loadMenungguKirim() {
+            document.getElementById('kirim-loading').classList.remove('hidden');
+            document.getElementById('kirim-kosong').classList.add('hidden');
+            document.getElementById('kirim-list').innerHTML = '';
+
+            fetch(`${APPS_SCRIPT_URL}?action=menunggu_kirim`)
+                .then(res => res.json())
+                .then(result => {
+                    document.getElementById('kirim-loading').classList.add('hidden');
+                    if (result.status !== 'success' || result.daftar.length === 0) {
+                        document.getElementById('kirim-kosong').classList.remove('hidden');
+                        return;
+                    }
+                    daftarMenungguKirim = result.daftar;
+                    document.getElementById('kirim-list').innerHTML = daftarMenungguKirim.map((o, idx) => {
+                        const telp = (o.phone || '').trim();
+                        const telpHtml = telp ? `
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <a href="tel:${telp}" class="bg-slate-700 text-white text-[11px] font-semibold px-2 py-2 rounded-lg text-center">📞 Telepon</a>
+                                <a href="https://wa.me/${telp.startsWith('0') ? '62' + telp.substring(1) : telp.replace(/\\D/g,'')}" target="_blank" class="bg-emerald-600 text-white text-[11px] font-semibold px-2 py-2 rounded-lg text-center">💬 WhatsApp</a>
+                            </div>` : '';
+                        const mapsHtml = o.gps ? `<a href="${o.gps}" target="_blank" class="block mt-2 bg-blue-600 text-white text-[11px] font-semibold px-2 py-2 rounded-lg text-center">📍 Buka Maps</a>` : '';
+
+                        return `
+                            <div class="border border-slate-200 rounded-xl p-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-slate-800 text-sm">${o.outlet_name}</span>
+                                    <span class="text-[10px] text-slate-400">${o.tanggal}</span>
+                                </div>
+                                <div class="text-xs text-slate-500 mb-1">Sales: ${o.sales_rep} • Rencana: ${o.metode_bayar_rencana}</div>
+                                <table class="w-full text-xs mb-1">
+                                    ${o.items.map(it => `<tr><td class="py-0.5">${it.item}</td><td class="py-0.5 text-right">${it.qty} x Rp${Number(it.price).toLocaleString('id-ID')}</td></tr>`).join('')}
+                                </table>
+                                <div class="flex justify-between text-sm font-bold border-t border-slate-100 pt-1">
+                                    <span>Total Rencana</span><span>Rp ${o.grand_total.toLocaleString('id-ID')}</span>
+                                </div>
+                                ${mapsHtml}${telpHtml}
+                                <button onclick="pilihOrderUntukKirim(${idx})" class="w-full mt-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 rounded-lg">Konfirmasi Pengiriman Ini</button>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(() => {
+                    document.getElementById('kirim-loading').classList.add('hidden');
+                    document.getElementById('kirim-kosong').classList.remove('hidden');
+                });
+        }
+
+        function pilihOrderUntukKirim(idx) {
+            orderTerpilihKirim = daftarMenungguKirim[idx];
+            kirimCart = orderTerpilihKirim.items.map(it => ({ item: it.item, qty: Number(it.qty), price: Number(it.price), total: Number(it.qty) * Number(it.price) }));
+
+            document.getElementById('kirim-detail-outlet').innerText = orderTerpilihKirim.outlet_name;
+            document.getElementById('kirim_metode_bayar').value = orderTerpilihKirim.metode_bayar_rencana === 'Kredit' ? 'Kredit' : 'Cash';
+            document.getElementById('kirim_gps_checkin').value = '';
+            document.getElementById('kirim-gps-status').innerText = 'Belum check-in. Wajib check-in dulu sebelum submit.';
+            document.getElementById('kirim-gps-status').className = 'text-xs text-emerald-700';
+
+            // Isi dropdown tambah item baru dari Price List, harga ikut tipe outlet ini
+            loadPriceList(function() {
+                const outletInfo = allOutlets.find(o => o.id === orderTerpilihKirim.outlet_id);
+                const tipe = outletInfo ? outletInfo.tipe : 'Retail';
+                const kolom = kolomHargaUntukTipe(tipe);
+                const select = document.getElementById('kirim_item_baru');
+                select.innerHTML = '<option value="">-- Pilih Produk --</option>' +
+                    (priceListCache || []).map(p => `<option value="${p.nama}" data-harga="${p[kolom]}">${p.nama} — Rp${Number(p[kolom]).toLocaleString('id-ID')}</option>`).join('');
+            });
+
+            renderKirimCart();
+            document.getElementById('kirim-list-section').classList.add('hidden');
+            document.getElementById('kirim-detail-section').classList.remove('hidden');
+        }
+
+        function batalKonfirmasiKirim() {
+            orderTerpilihKirim = null;
+            kirimCart = [];
+            document.getElementById('kirim-detail-section').classList.add('hidden');
+            document.getElementById('kirim-list-section').classList.remove('hidden');
+        }
+
+        function renderKirimCart() {
+            const container = document.getElementById('kirim-cart-list');
+            if (kirimCart.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400">Belum ada item. Tambahkan minimal 1.</p>';
+            } else {
+                container.innerHTML = kirimCart.map((c, i) => `
+                    <div class="flex items-center gap-2 bg-slate-50 rounded-lg p-2">
+                        <span class="flex-grow text-xs">${c.item}</span>
+                        <input type="number" min="0.5" step="0.5" value="${c.qty}" onchange="ubahQtyKirim(${i}, this.value)" class="w-16 text-center border border-slate-300 rounded-lg text-xs px-1 py-1">
+                        <span class="text-xs w-24 text-right">Rp${c.total.toLocaleString('id-ID')}</span>
+                        <button type="button" onclick="hapusItemKirim(${i})" class="text-red-500 text-xs font-bold px-1">✕</button>
+                    </div>
+                `).join('');
+            }
+            const grandTotal = kirimCart.reduce((s, c) => s + c.total, 0);
+            document.getElementById('kirim-grand-total').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+        }
+
+        function ubahQtyKirim(i, val) {
+            const qty = parseFloat(val) || 0;
+            kirimCart[i].qty = qty;
+            kirimCart[i].total = qty * kirimCart[i].price;
+            renderKirimCart();
+        }
+
+        function hapusItemKirim(i) {
+            kirimCart.splice(i, 1);
+            renderKirimCart();
+        }
+
+        function tambahItemKirim() {
+            const sel = document.getElementById('kirim_item_baru');
+            const itemNama = sel.value;
+            const harga = Number(sel.options[sel.selectedIndex]?.dataset.harga) || 0;
+            const qty = parseFloat(document.getElementById('kirim_qty_baru').value) || 0;
+
+            if (!itemNama) { showModal('Info', 'Pilih produk dulu.'); return; }
+            if (qty <= 0) { showModal('Info', 'Isi qty minimal 0.5.'); return; }
+
+            kirimCart.push({ item: itemNama, qty: qty, price: harga, total: qty * harga });
+            document.getElementById('kirim_qty_baru').value = '';
+            sel.value = '';
+            renderKirimCart();
+        }
+
+        function getLocationGPS_kirim() {
+            if (!navigator.geolocation) { showModal('Info', 'GPS tidak didukung perangkat ini.'); return; }
+            const btn = document.getElementById('kirim-gps-btn');
+            btn.disabled = true;
+            document.getElementById('kirim-gps-status').innerText = 'Mendeteksi lokasi...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('kirim_gps_checkin').value = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    document.getElementById('kirim-gps-status').innerText = '✓ Check-in berhasil, lokasi terkunci.';
+                    document.getElementById('kirim-gps-status').className = 'text-xs text-emerald-700 font-semibold';
+                    btn.disabled = false;
+                },
+                () => { document.getElementById('kirim-gps-status').innerText = 'Gagal ambil lokasi. Coba lagi.'; btn.disabled = false; },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        function submitKonfirmasiKirim() {
+            if (!orderTerpilihKirim) return;
+            const salesRep = document.getElementById('kirim_sales_rep').value.trim();
+            const gpsCheckin = document.getElementById('kirim_gps_checkin').value;
+
+            if (!salesRep) { showModal('Gagal', 'Isi nama Sales/Petugas Antar dulu.'); return; }
+            if (!gpsCheckin) { showModal('Gagal', 'Wajib check-in lokasi dulu sebelum submit.'); return; }
+            if (kirimCart.length === 0) { showModal('Gagal', 'Item pesanan tidak boleh kosong.'); return; }
+
+            const btn = document.getElementById('kirim-submit-btn');
+            const txt = document.getElementById('kirim-submit-text');
+            btn.disabled = true; txt.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    form_type: 'konfirmasi_pengiriman',
+                    order_id: orderTerpilihKirim.order_id,
+                    sales_rep: salesRep,
+                    metode_bayar: document.getElementById('kirim_metode_bayar').value,
+                    items: kirimCart,
+                    gps_checkin: gpsCheckin
+                })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; txt.innerText = 'Konfirmasi Barang Terkirim';
+                    if (result.status === 'success') {
+                        simpanSalesRep(salesRep);
+                        let msg = `Pengiriman dikonfirmasi! Total Rp${result.grand_total.toLocaleString('id-ID')}.`;
+                        if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
+                        else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
+                        showModal('Sukses', msg);
+                        batalKonfirmasiKirim();
+                        loadMenungguKirim();
+                    } else {
+                        showModal('Gagal', 'Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; txt.innerText = 'Konfirmasi Barang Terkirim'; showModal('Gagal', 'Koneksi error: ' + err.message); });
         }
 
         document.getElementById('order-form').addEventListener('submit', function(e) {
@@ -1561,7 +1846,8 @@
                 items: cart,
                 grand_total: grandTotal,
                 metode_bayar: document.getElementById('metode_bayar').value,
-                gps_checkin: gpsCheckin
+                gps_checkin: gpsCheckin,
+                langsung_serah: document.getElementById('langsung_serah').value
             };
 
             const btn = document.getElementById('order-submit-btn');
@@ -1574,16 +1860,21 @@
                     btn.disabled = false; txt.innerText = 'Simpan Order';
                     if (result.status === 'success') {
                         simpanSalesRep(salesRep);
-                        let msg = `Order tersimpan sebagai ${result.jenis_order}!`;
-                        if (result.gps_ditambal) msg += ' Outlet ini sebelumnya belum punya titik GPS — sudah otomatis dilengkapi dari lokasi check-in order ini.';
-                        if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
-                        else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
-                        tampilkanNota(newOrder, result);
-                        showModal('Sukses', msg);
+                        if (result.status_pengiriman === 'Menunggu Kirim') {
+                            showModal('Tersimpan', `Order tercatat sebagai MENUNGGU KIRIM. Stok & pembayaran belum final — nanti selesaikan lewat menu "Konfirmasi Pengiriman" saat barang benar-benar diantar.`);
+                        } else {
+                            let msg = `Order tersimpan sebagai ${result.jenis_order}!`;
+                            if (result.gps_ditambal) msg += ' Outlet ini sebelumnya belum punya titik GPS — sudah otomatis dilengkapi dari lokasi check-in order ini.';
+                            if (result.verifikasi === 'Perlu dicek') msg += ` Lokasi agak jauh dari outlet (${result.jarak}m).`;
+                            else if (result.verifikasi === 'Lokasi jauh dari outlet') msg += ` Perhatian: lokasi jauh dari outlet (${result.jarak}m).`;
+                            tampilkanNota(newOrder, result);
+                            showModal('Sukses', msg);
+                        }
                         document.getElementById('order-form').reset();
                         cart = [];
                         renderCart();
                         document.getElementById('kredit-info').classList.add('hidden');
+                        document.getElementById('menunggu-kirim-info').classList.add('hidden');
                         document.getElementById('order_gps_checkin').value = '';
                         document.getElementById('order-gps-status').innerText = 'Belum check-in. Wajib check-in dulu sebelum submit.';
                         document.getElementById('order-gps-status').className = 'text-xs text-slate-500';
