@@ -1654,7 +1654,7 @@
                     }
                     daftarMenungguKirim = result.daftar;
                     document.getElementById('kirim-list').innerHTML = daftarMenungguKirim.map((o, idx) => {
-                        const telp = (o.phone || '').trim();
+                        const telp = (o.phone || '').toString().trim();
                         const telpHtml = telp ? `
                             <div class="grid grid-cols-2 gap-2 mt-2">
                                 <a href="tel:${telp}" class="bg-slate-700 text-white text-[11px] font-semibold px-2 py-2 rounded-lg text-center">📞 Telepon</a>
