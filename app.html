@@ -1087,7 +1087,7 @@
             if (!select) return;
             if (outlets.length === 0) { select.innerHTML = '<option value="">Tidak ada outlet ditemukan</option>'; return; }
             select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}" data-phone="${o.phone || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+                outlets.map(o => `<option value="${o.id}" data-name="${o.name}" data-lat="${o.lat || ''}" data-lng="${o.lng || ''}" data-tipe="${o.tipe || ''}" data-phone="${o.phone || ''}" data-override="${o.override_harga || ''}">${o.id} - ${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
         }
 
         // ============ PENCARIAN OUTLET TOLERAN TYPO (FUZZY SEARCH) ============
@@ -1361,8 +1361,15 @@
 
         document.getElementById('order_outlet_select').addEventListener('change', function(e) {
             const sel = e.target.options[e.target.selectedIndex];
-            currentOutletTipe = sel.dataset.tipe || '';
-            document.getElementById('order-tipe-info').innerText = currentOutletTipe ? `Tipe outlet: ${currentOutletTipe} — harga produk menyesuaikan otomatis.` : '';
+            const tipeAsli = sel.dataset.tipe || '';
+            const overrideHarga = sel.dataset.override || '';
+            // Kalau outlet ini punya "Override Harga" (diatur Owner), harga yang dipakai ikut
+            // override itu, BUKAN Tipe aslinya — walau Tipe di data tetap tidak berubah.
+            currentOutletTipe = overrideHarga || tipeAsli;
+
+            document.getElementById('order-tipe-info').innerText = overrideHarga
+                ? `Tipe outlet: ${tipeAsli}, tapi harga mengikuti ${overrideHarga} (harga khusus dari Owner).`
+                : (currentOutletTipe ? `Tipe outlet: ${currentOutletTipe} — harga produk menyesuaikan otomatis.` : '');
 
             loadPriceList(function() {
                 renderProdukDropdown(currentOutletTipe);
