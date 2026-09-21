@@ -356,6 +356,62 @@
                     Simpan Pembayaran
                 </button>
             </div>
+
+            <!-- Override Harga per Outlet (Owner only) -->
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-violet-200 space-y-4 max-w-2xl mt-6">
+                <h2 class="text-sm font-bold text-violet-700 uppercase tracking-wider mb-1">Harga Khusus Outlet</h2>
+                <p class="text-xs text-slate-500 -mt-2">Kasih outlet tertentu harga tingkat lain (misal Pemakai Langsung dapat harga Grosir sebagai relasi baik) TANPA ubah Tipe aslinya di data.</p>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet</label>
+                    <select id="override_outlet" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="">-- Memuat daftar outlet... --</option>
+                    </select>
+                </div>
+
+                <div id="override-status-info" class="hidden bg-violet-50 border border-violet-200 rounded-xl p-3 text-xs text-violet-700"></div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga yang Dipakai</label>
+                    <select id="override_harga_pilihan" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                        <option value="">-- Normal (ikut Tipe asli outlet) --</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Grosir">Grosir</option>
+                        <option value="Pemakai langsung">Pemakai Langsung</option>
+                    </select>
+                </div>
+
+                <button onclick="simpanOverrideHarga()" id="override-submit-btn" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-sm">
+                    Simpan Harga Khusus
+                </button>
+            </div>
+
+            <!-- Edit Order: koreksi metode bayar (Owner only) -->
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-orange-200 space-y-4 max-w-2xl mt-6">
+                <h2 class="text-sm font-bold text-orange-700 uppercase tracking-wider mb-1">Koreksi Metode Bayar</h2>
+                <p class="text-xs text-slate-500 -mt-2">Buat perbaiki kalau sales salah input (misal harusnya Kredit tapi keinput Cash, atau sebaliknya).</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tanggal Order</label>
+                        <input type="date" id="edit_tanggal" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep</label>
+                        <select id="edit_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                            <option value="">-- Memuat... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="loadOrdersUntukEdit()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold py-2.5 rounded-xl">
+                    Cari Order
+                </button>
+
+                <div id="edit-order-loading" class="hidden text-xs text-slate-400 text-center py-4">Memuat...</div>
+                <div id="edit-order-kosong" class="hidden text-xs text-slate-400 text-center py-4">Tidak ada order untuk sales & tanggal ini.</div>
+                <div id="edit-order-list" class="space-y-2"></div>
+            </div>
         </div>
         <!-- ============ /TAB: SETORAN HARIAN ============ -->
 
@@ -594,7 +650,7 @@
             // Muat data tab ini SEKALI SAJA, saat pertama kali dibuka — bolak-balik pindah tab
             // setelahnya tidak fetch ulang, langsung pakai yang sudah ada di memori.
             if (name === 'progres' && !progresSudahDimuat) { progresSudahDimuat = true; loadProgresSalesHariIni(); }
-            if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); }
+            if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); initEditOrderTab(); }
             if (name === 'stok' && !stokSudahDimuat) { stokSudahDimuat = true; initStokTab(); }
             if (name === 'laporan' && !laporanSudahDimuat) { laporanSudahDimuat = true; initLaporanTab(); }
         }
@@ -699,20 +755,143 @@
                     document.getElementById('setoran_sales_rep').innerHTML = '<option value="">Gagal memuat, coba refresh halaman</option>';
                 });
 
-            // Sekalian isi dropdown outlet untuk fitur Bayar Kredit di tab yang sama
+            // Sekalian isi dropdown outlet untuk fitur Bayar Kredit & Harga Khusus di tab yang sama
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_outlets`)
                 .then(result => {
                     const select = document.getElementById('owner_bk_outlet');
+                    const selectOverride = document.getElementById('override_outlet');
                     if (result.status === 'success' && result.outlets.length > 0) {
+                        daftarOutletCache = result.outlets;
                         select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
                             result.outlets.map(o => `<option value="${o.id}" data-name="${o.name}">${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
+                        selectOverride.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
+                            result.outlets.map(o => `<option value="${o.id}">${o.name} — Tipe asli: ${o.tipe || '-'}${o.override_harga ? ' (sekarang override: ' + o.override_harga + ')' : ''}</option>`).join('');
                     } else {
                         select.innerHTML = '<option value="">Tidak ada outlet</option>';
+                        selectOverride.innerHTML = '<option value="">Tidak ada outlet</option>';
                     }
                 })
                 .catch(() => {
                     document.getElementById('owner_bk_outlet').innerHTML = '<option value="">Gagal memuat</option>';
+                    document.getElementById('override_outlet').innerHTML = '<option value="">Gagal memuat</option>';
                 });
+        }
+
+        // ============ HARGA KHUSUS OUTLET ============
+        let daftarOutletCache = [];
+
+        document.getElementById('override_outlet').addEventListener('change', function(e) {
+            const outlet = daftarOutletCache.find(o => o.id === e.target.value);
+            const info = document.getElementById('override-status-info');
+            if (!outlet) { info.classList.add('hidden'); return; }
+
+            info.innerHTML = outlet.override_harga
+                ? `Tipe asli: <b>${outlet.tipe || '-'}</b> — saat ini pakai harga <b>${outlet.override_harga}</b> (override aktif).`
+                : `Tipe asli: <b>${outlet.tipe || '-'}</b> — belum ada harga khusus, ikut Tipe asli.`;
+            info.classList.remove('hidden');
+            document.getElementById('override_harga_pilihan').value = outlet.override_harga || '';
+        });
+
+        function simpanOverrideHarga() {
+            const outletId = document.getElementById('override_outlet').value;
+            const overrideHarga = document.getElementById('override_harga_pilihan').value;
+            if (!outletId) { alert('Pilih outlet dulu.'); return; }
+
+            const btn = document.getElementById('override-submit-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'override_harga', outlet_id: outletId, override_harga: overrideHarga })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Simpan Harga Khusus';
+                    if (result.status === 'success') {
+                        alert(overrideHarga ? `Berhasil — outlet ini sekarang pakai harga ${overrideHarga}.` : 'Berhasil — outlet ini dikembalikan ke harga normal (ikut Tipe asli).');
+                        loadSalesListSetoran(); // refresh cache biar status terbaru kelihatan
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Harga Khusus'; alert('Koneksi error: ' + err.message); });
+        }
+
+        // ============ EDIT ORDER: KOREKSI METODE BAYAR ============
+        function initEditOrderTab() {
+            document.getElementById('edit_tanggal').value = tglLokal(new Date());
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_sales`)
+                .then(result => {
+                    const select = document.getElementById('edit_sales_rep');
+                    if (result.status === 'success' && result.sales.length > 0) {
+                        select.innerHTML = '<option value="">-- Pilih Sales --</option>' + result.sales.map(s => `<option value="${s}">${s}</option>`).join('');
+                    } else {
+                        select.innerHTML = '<option value="">Belum ada data sales</option>';
+                    }
+                });
+        }
+
+        function loadOrdersUntukEdit() {
+            const tanggal = document.getElementById('edit_tanggal').value;
+            const salesRep = document.getElementById('edit_sales_rep').value;
+            if (!salesRep) { alert('Pilih sales rep dulu.'); return; }
+
+            document.getElementById('edit-order-loading').classList.remove('hidden');
+            document.getElementById('edit-order-kosong').classList.add('hidden');
+            document.getElementById('edit-order-list').innerHTML = '';
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=orders_untuk_edit&tanggal=${tanggal}&sales_rep=${encodeURIComponent(salesRep)}`)
+                .then(result => {
+                    document.getElementById('edit-order-loading').classList.add('hidden');
+                    if (result.status !== 'success' || result.daftar.length === 0) {
+                        document.getElementById('edit-order-kosong').classList.remove('hidden');
+                        return;
+                    }
+                    document.getElementById('edit-order-list').innerHTML = result.daftar.map(o => {
+                        const bisaDiubah = !(o.metode_bayar === 'Kredit' && o.sisa_kredit < o.grand_total);
+                        const badge = o.metode_bayar === 'Cash'
+                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
+                            : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
+                        const items = o.items.map(it => `${it.item} (${it.qty})`).join(', ');
+                        return `
+                            <div class="border border-slate-200 rounded-xl p-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-slate-800 text-sm">${o.outlet_name}</span>
+                                    ${badge}
+                                </div>
+                                <div class="text-[11px] text-slate-500 mb-2">${items}</div>
+                                <div class="flex justify-between text-sm font-bold mb-2">
+                                    <span>Total</span><span>${rupiah(o.grand_total)}</span>
+                                </div>
+                                ${bisaDiubah
+                                    ? `<button onclick="ubahMetodeBayar('${o.order_id}', '${o.metode_bayar === 'Cash' ? 'Kredit' : 'Cash'}')" class="w-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2 rounded-lg">Ubah jadi ${o.metode_bayar === 'Cash' ? 'Kredit' : 'Cash'}</button>`
+                                    : `<p class="text-[10px] text-red-600 text-center">Sudah ada pelunasan sebagian (Sisa ${rupiah(o.sisa_kredit)} dari ${rupiah(o.grand_total)}) — tidak bisa diubah otomatis, hubungi developer untuk koreksi manual.</p>`
+                                }
+                            </div>
+                        `;
+                    }).join('');
+                });
+        }
+
+        function ubahMetodeBayar(orderId, metodeBaru) {
+            if (!confirm(`Yakin ubah order ini jadi ${metodeBaru}?`)) return;
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'edit_metode_bayar', order_id: orderId, metode_bayar_baru: metodeBaru })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        alert(`Berhasil diubah jadi ${result.metode_baru}.`);
+                        loadOrdersUntukEdit();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                })
+                .catch(err => alert('Koneksi error: ' + err.message));
         }
 
         // ============ BAYAR KREDIT (OWNER) ============
