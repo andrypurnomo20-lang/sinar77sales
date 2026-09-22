@@ -319,11 +319,11 @@
                 <h2 class="text-sm font-bold text-rose-700 uppercase tracking-wider mb-2">Catat Pembayaran Kredit</h2>
                 <p class="text-xs text-slate-500 -mt-2">Dipakai kalau owner sendiri yang terima pembayaran kredit (bukan sales di lapangan). Bisa cicilan/sebagian.</p>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet</label>
-                    <select id="owner_bk_outlet" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
-                        <option value="">-- Memuat daftar outlet... --</option>
-                    </select>
+                <div class="relative">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cari Outlet</label>
+                    <input type="text" id="owner_bk_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                    <div id="owner_bk_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                    <input type="hidden" id="owner_bk_outlet">
                 </div>
 
                 <div id="owner-bk-sisa-info" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-4">
@@ -360,25 +360,32 @@
             <!-- Override Harga per Outlet (Owner only) -->
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-violet-200 space-y-4 max-w-2xl mt-6">
                 <h2 class="text-sm font-bold text-violet-700 uppercase tracking-wider mb-1">Harga Khusus Outlet</h2>
-                <p class="text-xs text-slate-500 -mt-2">Kasih outlet tertentu harga tingkat lain (misal Pemakai Langsung dapat harga Grosir sebagai relasi baik) TANPA ubah Tipe aslinya di data.</p>
+                <p class="text-xs text-slate-500 -mt-2">Kasih outlet tertentu harga tingkat lain, ATAU angka custom per produk. TANPA ubah Tipe aslinya di data.</p>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet</label>
-                    <select id="override_outlet" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
-                        <option value="">-- Memuat daftar outlet... --</option>
-                    </select>
+                <div class="relative">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cari Outlet</label>
+                    <input type="text" id="override_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                    <div id="override_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                    <input type="hidden" id="override_outlet">
                 </div>
 
                 <div id="override-status-info" class="hidden bg-violet-50 border border-violet-200 rounded-xl p-3 text-xs text-violet-700"></div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga yang Dipakai</label>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Harga yang Dipakai (Pindah Tingkat)</label>
                     <select id="override_harga_pilihan" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
                         <option value="">-- Normal (ikut Tipe asli outlet) --</option>
                         <option value="Retail">Retail</option>
                         <option value="Grosir">Grosir</option>
                         <option value="Pemakai langsung">Pemakai Langsung</option>
                     </select>
+                </div>
+
+                <div class="border-t border-slate-200 pt-3">
+                    <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Atau Harga Custom per Produk</label>
+                    <p class="text-[10px] text-slate-400 mb-2">Angka bebas per produk, khusus outlet ini. Kalau diisi, MENANG duluan dibanding pilihan tingkat di atas. Kosongkan untuk kembali ke harga normal/tingkat.</p>
+                    <div id="override-produk-loading" class="hidden text-xs text-slate-400">Memuat daftar produk...</div>
+                    <div id="override-produk-list" class="space-y-2"></div>
                 </div>
 
                 <button onclick="simpanOverrideHarga()" id="override-submit-btn" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl text-sm">
@@ -630,6 +637,7 @@
 
         // ============ NAVIGASI TAB ============
         let progresSudahDimuat = false;
+        let daftarOutletCache = [];
         let setoranSudahDimuat = false;
         let stokSudahDimuat = false;
         let laporanSudahDimuat = false;
@@ -755,64 +763,157 @@
                     document.getElementById('setoran_sales_rep').innerHTML = '<option value="">Gagal memuat, coba refresh halaman</option>';
                 });
 
-            // Sekalian isi dropdown outlet untuk fitur Bayar Kredit & Harga Khusus di tab yang sama
+            // Sekalian ambil daftar outlet untuk fitur Bayar Kredit & Harga Khusus (dipakai fuzzy search)
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_outlets`)
                 .then(result => {
-                    const select = document.getElementById('owner_bk_outlet');
-                    const selectOverride = document.getElementById('override_outlet');
                     if (result.status === 'success' && result.outlets.length > 0) {
                         daftarOutletCache = result.outlets;
-                        select.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                            result.outlets.map(o => `<option value="${o.id}" data-name="${o.name}">${o.name} (${o.city || 'Tanpa Kota'})</option>`).join('');
-                        selectOverride.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-                            result.outlets.map(o => `<option value="${o.id}">${o.name} — Tipe asli: ${o.tipe || '-'}${o.override_harga ? ' (sekarang override: ' + o.override_harga + ')' : ''}</option>`).join('');
-                    } else {
-                        select.innerHTML = '<option value="">Tidak ada outlet</option>';
-                        selectOverride.innerHTML = '<option value="">Tidak ada outlet</option>';
                     }
                 })
-                .catch(() => {
-                    document.getElementById('owner_bk_outlet').innerHTML = '<option value="">Gagal memuat</option>';
-                    document.getElementById('override_outlet').innerHTML = '<option value="">Gagal memuat</option>';
-                });
+                .catch(() => {});
         }
 
+        // ============ PENCARIAN OUTLET TOLERAN TYPO (dipakai Bayar Kredit & Harga Khusus) ============
+        function levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+            return dp[m][n];
+        }
+
+        function skorKecocokanOutlet(outlet, keyword) {
+            const kw = keyword.toLowerCase().trim();
+            const name = outlet.name.toLowerCase();
+            const city = (outlet.city || '').toLowerCase();
+            if (name.includes(kw) || city.includes(kw)) return 0;
+            const kataKata = (name + ' ' + city).split(/\s+/).filter(Boolean);
+            let terbaik = Infinity;
+            for (const kata of kataKata) { const jarak = levenshtein(kw, kata); if (jarak < terbaik) terbaik = jarak; }
+            return terbaik;
+        }
+
+        function cariOutletOwner(keyword) {
+            const kw = keyword.trim();
+            if (!kw) return [];
+            const toleransi = Math.max(1, Math.ceil(kw.length * 0.3));
+            return daftarOutletCache
+                .map(o => ({ outlet: o, skor: skorKecocokanOutlet(o, kw) }))
+                .filter(x => x.skor <= toleransi)
+                .sort((a, b) => a.skor - b.skor)
+                .map(x => x.outlet);
+        }
+
+        function renderSuggestionsOwner(outlets, containerId, inputId, hiddenId, onPilih) {
+            const container = document.getElementById(containerId);
+            if (outlets.length === 0) {
+                container.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Tidak ditemukan</div>';
+                container.classList.remove('hidden');
+                return;
+            }
+            container.innerHTML = outlets.slice(0, 8).map(o => `
+                <div class="suggestion-item px-3 py-2.5 text-sm hover:bg-slate-100 cursor-pointer border-b border-slate-100 last:border-0" data-id="${o.id}">
+                    <div class="font-medium text-slate-800">${o.name}</div>
+                    <div class="text-[11px] text-slate-400">${o.city || 'Tanpa Kota'}${o.override_harga ? ' — override aktif: ' + o.override_harga : ''}</div>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+            container.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('mousedown', function(ev) {
+                    ev.preventDefault();
+                    const outlet = daftarOutletCache.find(o => o.id === this.dataset.id);
+                    document.getElementById(inputId).value = `${outlet.name} (${outlet.city || 'Tanpa Kota'})`;
+                    document.getElementById(hiddenId).value = outlet.id;
+                    container.classList.add('hidden');
+                    onPilih(outlet);
+                });
+            });
+        }
+
+        document.getElementById('owner_bk_outlet_search').addEventListener('input', function(e) {
+            if (!e.target.value.trim()) { document.getElementById('owner_bk_outlet_suggestions').classList.add('hidden'); return; }
+            renderSuggestionsOwner(cariOutletOwner(e.target.value), 'owner_bk_outlet_suggestions', 'owner_bk_outlet_search', 'owner_bk_outlet', outlet => cekSisaKreditOutlet(outlet.id));
+        });
+        document.getElementById('override_outlet_search').addEventListener('input', function(e) {
+            if (!e.target.value.trim()) { document.getElementById('override_outlet_suggestions').classList.add('hidden'); return; }
+            renderSuggestionsOwner(cariOutletOwner(e.target.value), 'override_outlet_suggestions', 'override_outlet_search', 'override_outlet', outlet => pilihOutletUntukOverride(outlet));
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#owner_bk_outlet_search') && !e.target.closest('#owner_bk_outlet_suggestions')) {
+                document.getElementById('owner_bk_outlet_suggestions')?.classList.add('hidden');
+            }
+            if (!e.target.closest('#override_outlet_search') && !e.target.closest('#override_outlet_suggestions')) {
+                document.getElementById('override_outlet_suggestions')?.classList.add('hidden');
+            }
+        });
+
         // ============ HARGA KHUSUS OUTLET ============
-        let daftarOutletCache = [];
+        let daftarProdukOverrideCache = [];
 
-        document.getElementById('override_outlet').addEventListener('change', function(e) {
-            const outlet = daftarOutletCache.find(o => o.id === e.target.value);
+        function pilihOutletUntukOverride(outlet) {
             const info = document.getElementById('override-status-info');
-            if (!outlet) { info.classList.add('hidden'); return; }
-
             info.innerHTML = outlet.override_harga
                 ? `Tipe asli: <b>${outlet.tipe || '-'}</b> — saat ini pakai harga <b>${outlet.override_harga}</b> (override aktif).`
                 : `Tipe asli: <b>${outlet.tipe || '-'}</b> — belum ada harga khusus, ikut Tipe asli.`;
             info.classList.remove('hidden');
             document.getElementById('override_harga_pilihan').value = outlet.override_harga || '';
-        });
+
+            // Muat daftar produk + harga custom yang sudah ada untuk outlet ini
+            document.getElementById('override-produk-loading').classList.remove('hidden');
+            document.getElementById('override-produk-list').innerHTML = '';
+
+            Promise.all([
+                daftarProdukOverrideCache.length > 0 ? Promise.resolve({ status: 'success', products: daftarProdukOverrideCache }) : fetchDenganRetry(`${APPS_SCRIPT_URL}?action=price_list`),
+                fetchDenganRetry(`${APPS_SCRIPT_URL}?action=harga_custom_outlet&outlet_id=${encodeURIComponent(outlet.id)}`)
+            ]).then(([priceResult, customResult]) => {
+                document.getElementById('override-produk-loading').classList.add('hidden');
+                if (priceResult.status === 'success') daftarProdukOverrideCache = priceResult.products;
+
+                const customMap = {};
+                if (customResult.status === 'success') customResult.daftar.forEach(d => { customMap[d.produk] = d.harga_custom; });
+
+                document.getElementById('override-produk-list').innerHTML = daftarProdukOverrideCache.map(p => `
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-600 flex-grow">${p.nama}</span>
+                        <input type="number" min="0" class="override-produk-input w-28 text-right border border-slate-300 rounded-lg px-2 py-1.5 text-xs" data-produk="${p.nama}" value="${customMap[p.nama] || ''}" placeholder="Normal">
+                    </div>
+                `).join('');
+            });
+        }
 
         function simpanOverrideHarga() {
             const outletId = document.getElementById('override_outlet').value;
             const overrideHarga = document.getElementById('override_harga_pilihan').value;
-            if (!outletId) { alert('Pilih outlet dulu.'); return; }
+            if (!outletId) { alert('Cari & pilih outlet dulu.'); return; }
+
+            const hargaCustomItems = Array.from(document.querySelectorAll('.override-produk-input'))
+                .map(input => ({ produk: input.dataset.produk, harga_custom: input.value }));
 
             const btn = document.getElementById('override-submit-btn');
             btn.disabled = true; btn.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ form_type: 'override_harga', outlet_id: outletId, override_harga: overrideHarga })
-            })
-                .then(res => res.json())
-                .then(result => {
+            Promise.all([
+                fetch(APPS_SCRIPT_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ form_type: 'override_harga', outlet_id: outletId, override_harga: overrideHarga })
+                }).then(res => res.json()),
+                fetch(APPS_SCRIPT_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ form_type: 'harga_custom_outlet', outlet_id: outletId, items: hargaCustomItems })
+                }).then(res => res.json())
+            ])
+                .then(([r1, r2]) => {
                     btn.disabled = false; btn.innerText = 'Simpan Harga Khusus';
-                    if (result.status === 'success') {
-                        alert(overrideHarga ? `Berhasil — outlet ini sekarang pakai harga ${overrideHarga}.` : 'Berhasil — outlet ini dikembalikan ke harga normal (ikut Tipe asli).');
+                    if (r1.status === 'success' && r2.status === 'success') {
+                        alert('Harga khusus outlet berhasil disimpan.');
                         loadSalesListSetoran(); // refresh cache biar status terbaru kelihatan
                     } else {
-                        alert('Error: ' + result.message);
+                        alert('Error: ' + (r1.message || r2.message));
                     }
                 })
                 .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Harga Khusus'; alert('Koneksi error: ' + err.message); });
@@ -924,8 +1025,7 @@
             `;
         }
 
-        document.getElementById('owner_bk_outlet').addEventListener('change', function(e) {
-            const outletId = e.target.value;
+        function cekSisaKreditOutlet(outletId) {
             if (!outletId) return;
 
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=sisa_kredit&outlet_id=${encodeURIComponent(outletId)}`)
@@ -947,15 +1047,15 @@
                         document.getElementById('owner-bk-riwayat-wrapper').classList.add('hidden');
                     }
                 });
-        });
+        }
 
         function simpanBayarKreditOwner() {
-            const sel = document.getElementById('owner_bk_outlet');
-            const outletId = sel.value;
-            const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+            const outletId = document.getElementById('owner_bk_outlet').value;
+            const outletInfo = daftarOutletCache.find(o => o.id === outletId);
+            const outletName = outletInfo ? outletInfo.name : '';
             const jumlah = document.getElementById('owner_bk_jumlah').value;
 
-            if (!outletId) { alert('Pilih outlet dulu.'); return; }
+            if (!outletId) { alert('Cari & pilih outlet dulu.'); return; }
             if (!jumlah || Number(jumlah) <= 0) { alert('Isi jumlah dibayar dengan benar.'); return; }
 
             const btn = document.getElementById('owner-bk-submit-btn');
@@ -974,10 +1074,11 @@
                         if (result.kelebihan > 0) msg += ` Catatan: ada kelebihan bayar ${rupiah(result.kelebihan)}.`;
                         alert(msg);
                         document.getElementById('owner_bk_jumlah').value = '';
+                        document.getElementById('owner_bk_outlet_search').value = '';
+                        document.getElementById('owner_bk_outlet').value = '';
                         document.getElementById('owner-bk-sisa-info').classList.add('hidden');
                         document.getElementById('owner-bk-lunas-info').classList.add('hidden');
                         document.getElementById('owner-bk-riwayat-wrapper').classList.add('hidden');
-                        sel.value = '';
                     } else {
                         alert('Error: ' + result.message);
                     }
