@@ -1371,6 +1371,21 @@
                 ? `Tipe outlet: ${tipeAsli}, tapi harga mengikuti ${overrideHarga} (harga khusus dari Owner).`
                 : (currentOutletTipe ? `Tipe outlet: ${currentOutletTipe} — harga produk menyesuaikan otomatis.` : '');
 
+            // Ambil daftar Harga Custom (per produk) outlet ini, kalau ada — dipasang Owner lewat Owner Dashboard
+            const outletIdTerpilih = e.target.value;
+            hargaCustomOutletCache = {};
+            if (outletIdTerpilih) {
+                fetch(`${APPS_SCRIPT_URL}?action=harga_custom_outlet&outlet_id=${encodeURIComponent(outletIdTerpilih)}`)
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            result.daftar.forEach(d => { hargaCustomOutletCache[d.produk] = d.harga_custom; });
+                            if (cart.length > 0) recalcAllDiscounts();
+                        }
+                    })
+                    .catch(() => {});
+            }
+
             loadPriceList(function() {
                 renderProdukDropdown(currentOutletTipe);
                 if (cart.length > 0) recalcAllDiscounts(); // outlet diganti setelah keranjang terisi -> harga perlu dihitung ulang
@@ -1469,7 +1484,9 @@
 
         function pilihProduk() {
             const sel = document.getElementById('item');
-            const harga = sel.options[sel.selectedIndex]?.dataset.harga || '';
+            const namaProduk = sel.value;
+            // Harga Custom (kalau ada) langsung ditampilkan sejak dipilih, bukan tunggu masuk keranjang
+            const harga = hargaCustomOutletCache[namaProduk] || sel.options[sel.selectedIndex]?.dataset.harga || '';
             document.getElementById('price').value = harga;
             previewHargaDiskon();
         }
@@ -1546,12 +1563,20 @@
         // 1) Tentukan kolom harga dasar (Retail/Grosir/Pemakai Langsung, atau "naik kelas" ke Grosir kalau outlet Retail & qty>=10)
         // 2) Terapkan diskon Cash 25-49/50+ di atas harga dasar itu
         // Dipanggil setiap kali keranjang berubah (tambah/hapus item), metode pembayaran diganti, atau outlet diganti.
+        let hargaCustomOutletCache = {}; // { namaProduk: hargaCustom } — untuk outlet yang sedang dipilih
+
         function recalcAllDiscounts() {
             const totalQty = totalQtyKeranjang();
             const kolom = kolomHargaEfektif(currentOutletTipe, totalQty);
             const diskon = hitungDiskonPerUnit(totalQty);
 
             cart = cart.map(c => {
+                // Harga Custom (kalau ada, khusus outlet ini) menang duluan dibanding Override
+                // Harga maupun harga normal sesuai Tipe — diatur Owner lewat Owner Dashboard.
+                if (hargaCustomOutletCache[c.item]) {
+                    const hargaCustom = hargaCustomOutletCache[c.item];
+                    return { ...c, harga_asli: hargaCustom, diskon_per_unit: diskon, price: hargaCustom - diskon, total: c.qty * (hargaCustom - diskon) };
+                }
                 const produk = (priceListCache || []).find(p => p.nama === c.item);
                 const hargaDasar = produk ? produk[kolom] : c.harga_asli; // fallback ke harga lama kalau produk tidak ketemu
                 return {
