@@ -666,7 +666,7 @@
                             <div class="text-lg font-extrabold text-amber-800" id="lap-total-kredit">Rp 0</div>
                         </div>
                         <div class="bg-sky-50 rounded-xl p-3">
-                            <div class="text-[10px] text-sky-700 uppercase font-semibold">Total Penagihan Kredit</div>
+                            <div class="text-[10px] text-sky-700 uppercase font-semibold">Penagihan Kredit (Cash)</div>
                             <div class="text-lg font-extrabold text-sky-800" id="lap-total-penagihan">Rp 0</div>
                         </div>
                         <div class="bg-orange-50 rounded-xl p-3">
@@ -677,6 +677,16 @@
                             <div class="text-[10px] text-slate-300 uppercase font-semibold">Total Uang Harus Disetor (Cash Order + Penagihan Cash − Pengeluaran)</div>
                             <div class="text-xl font-extrabold text-white" id="lap-total-setoran">Rp 0</div>
                         </div>
+                    </div>
+
+                    <!-- Pembayaran Kredit yang Diterima -->
+                    <div id="lap-pembayaran-wrapper" class="hidden">
+                        <div class="flex justify-between items-baseline mb-2">
+                            <h3 class="text-xs font-bold uppercase text-slate-500">Rincian Pembayaran Kredit</h3>
+                            <span id="lap-pembayaran-ringkas" class="text-[10px] text-slate-400"></span>
+                        </div>
+                        <div id="lap-pembayaran-list" class="space-y-1"></div>
+                        <p class="text-[10px] text-slate-400 mt-1">Hanya yang Cash masuk hitungan uang yang harus disetor. Transfer langsung ke rekening.</p>
                     </div>
 
                     <!-- Pengeluaran Hari Ini -->
@@ -1481,7 +1491,11 @@
                     document.getElementById('laporan-loading').classList.add('hidden');
                     if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
 
-                    if (result.closings.length === 0) {
+                    // Kosong HANYA kalau tidak ada closing, tidak ada pembayaran kredit, dan tidak ada pengeluaran.
+                    // (Sales bisa saja hari itu cuma menagih kredit, tanpa order baru.)
+                    const adaPembayaran = result.pembayaran_kredit && result.pembayaran_kredit.length > 0;
+                    const adaPengeluaran = result.pengeluaran && result.pengeluaran.length > 0;
+                    if (result.closings.length === 0 && !adaPembayaran && !adaPengeluaran) {
                         document.getElementById('laporan-kosong').classList.remove('hidden');
                         return;
                     }
@@ -1493,6 +1507,29 @@
                     document.getElementById('lap-total-penagihan').innerText = rupiah(result.total_penagihan_kredit);
                     document.getElementById('lap-total-pengeluaran').innerText = rupiah(result.total_pengeluaran);
                     document.getElementById('lap-total-setoran').innerText = rupiah(result.total_setoran);
+
+                    if (result.pembayaran_kredit && result.pembayaran_kredit.length > 0) {
+                        document.getElementById('lap-pembayaran-list').innerHTML = result.pembayaran_kredit.map(p => {
+                            const badge = p.metode_bayar === 'Cash'
+                                ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
+                                : `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">${p.metode_bayar}</span>`;
+                            const lebih = p.kelebihan > 0 ? `<div class="text-[10px] text-amber-600">Kelebihan bayar ${rupiah(p.kelebihan)}</div>` : '';
+                            return `
+                                <div class="bg-sky-50 rounded-lg p-2 text-xs">
+                                    <div class="flex justify-between items-center gap-2">
+                                        <span class="min-w-0"><span class="text-slate-400">${p.waktu || ''}</span> — <span class="font-medium text-slate-800">${p.outlet_name}</span></span>
+                                        <span class="flex items-center gap-2 shrink-0">${badge}<span class="font-semibold">${rupiah(p.jumlah)}</span></span>
+                                    </div>
+                                    ${lebih}
+                                </div>
+                            `;
+                        }).join('');
+                        document.getElementById('lap-pembayaran-ringkas').innerText =
+                            `${result.pembayaran_kredit.length} pembayaran • Cash ${rupiah(result.total_penagihan_kredit)} • Transfer ${rupiah(result.total_penagihan_transfer || 0)}`;
+                        document.getElementById('lap-pembayaran-wrapper').classList.remove('hidden');
+                    } else {
+                        document.getElementById('lap-pembayaran-wrapper').classList.add('hidden');
+                    }
 
                     if (result.pengeluaran && result.pengeluaran.length > 0) {
                         document.getElementById('lap-pengeluaran-list').innerHTML = result.pengeluaran.map(p => `
