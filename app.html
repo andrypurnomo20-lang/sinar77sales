@@ -139,8 +139,8 @@
                         <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <div>
-                        <div class="font-bold text-slate-900">Laporan Hari Ini</div>
-                        <div class="text-xs text-slate-500">Ringkasan closing & setoran Anda</div>
+                        <div class="font-bold text-slate-900">Laporan Penutupan</div>
+                        <div class="text-xs text-slate-500">Uang yang harus disetor & rincian closing</div>
                     </div>
                 </button>
 
@@ -166,7 +166,7 @@
             </div>
         </div>
 
-        <!-- ============ VIEW: PROGRES BULANAN ============ -->
+                <!-- ============ VIEW: PROGRES BULANAN ============ -->
         <div id="view-bulanan" class="view">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Progres Bulanan</h2>
@@ -187,10 +187,37 @@
                         <div class="w-full bg-slate-100 rounded-full h-2.5">
                             <div id="bv-bar" class="bg-indigo-500 h-2.5 rounded-full transition-all" style="width: 0%"></div>
                         </div>
+                        <div class="flex justify-between text-[11px] text-slate-500 mt-1.5">
+                            <span>Rata-rata <b id="bv-rata">0</b> per hari &bull; <span id="bv-hari-aktif">0</span> hari aktif</span>
+                            <span id="bv-proyeksi-wrap" class="hidden">Proyeksi akhir bulan <b id="bv-proyeksi">0</b></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-emerald-50 rounded-xl p-3">
+                            <div class="text-[10px] text-emerald-700 uppercase font-semibold">Omzet</div>
+                            <div class="text-base font-extrabold text-emerald-800" id="bv-omzet">Rp 0</div>
+                            <div class="text-[10px] text-emerald-700/80 mt-0.5" id="bv-omzet-menunggu"></div>
+                        </div>
+                        <div class="bg-sky-50 rounded-xl p-3">
+                            <div class="text-[10px] text-sky-700 uppercase font-semibold">Konversi</div>
+                            <div class="text-base font-extrabold text-sky-800"><span id="bv-konversi">0</span>%</div>
+                            <div class="text-[10px] text-sky-700/80 mt-0.5">outlet order &divide; dikunjungi</div>
+                        </div>
+                        <div class="bg-indigo-50 rounded-xl p-3">
+                            <div class="text-[10px] text-indigo-700 uppercase font-semibold">Penagihan Kredit</div>
+                            <div class="text-base font-extrabold text-indigo-800" id="bv-penagihan">Rp 0</div>
+                            <div class="text-[10px] text-indigo-700/80 mt-0.5" id="bv-penagihan-rinci"></div>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3">
+                            <div class="text-[10px] text-amber-700 uppercase font-semibold">Pelanggan Baru</div>
+                            <div class="text-base font-extrabold text-amber-800" id="bv-trial">0</div>
+                            <div class="text-[10px] text-amber-700/80 mt-0.5">outlet order pertama bulan ini</div>
+                        </div>
                     </div>
 
                     <div class="bg-slate-50 rounded-xl p-3">
-                        <div class="text-[10px] text-slate-500 uppercase mb-1">Total Item Terjual Bulan Ini</div>
+                        <div class="text-[10px] text-slate-500 uppercase mb-1">Item Terjual Bulan Ini (sudah terkirim)</div>
                         <div id="bv-item-detail" class="text-xs text-slate-500 space-y-0.5 mb-2"></div>
                         <div class="text-lg font-extrabold text-slate-800 border-t border-slate-200 pt-1.5" id="bv-item-total">0</div>
                     </div>
@@ -317,45 +344,80 @@
             </div>
         </div>
 
-        <!-- ============ VIEW: LAPORAN HARI INI ============ -->
+                <!-- ============ VIEW: LAPORAN PENUTUPAN ============ -->
         <div id="view-laporan" class="view">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4 pb-2 border-b">
-                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Laporan Hari Ini</h2>
+                <div class="flex justify-between items-center mb-3 pb-2 border-b">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Laporan Penutupan</h2>
                     <button onclick="loadLaporanSaya()" class="text-[10px] text-teal-600 font-semibold">Refresh</button>
                 </div>
+                <div class="mb-4">
+                    <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Tanggal</label>
+                    <input type="date" id="laporan_tanggal_saya" onchange="loadLaporanSaya()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+
                 <div id="laporan-saya-loading" class="text-xs text-slate-400 text-center py-8">Memuat laporan...</div>
-                <div id="laporan-saya-kosong" class="hidden text-xs text-slate-400 text-center py-8">Belum ada transaksi hari ini.</div>
-                <div id="laporan-saya-content" class="hidden space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-emerald-50 rounded-xl p-3">
-                            <div class="text-[10px] text-emerald-700 uppercase font-semibold">Total Penjualan</div>
-                            <div class="text-base font-extrabold text-emerald-800" id="ls-total-penjualan">Rp 0</div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Total Item Terjual</div>
-                            <div class="text-base font-extrabold text-slate-800" id="ls-total-item">0</div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Cash</div>
-                            <div class="text-base font-extrabold text-slate-800" id="ls-total-cash">Rp 0</div>
-                        </div>
-                        <div class="bg-amber-50 rounded-xl p-3">
-                            <div class="text-[10px] text-amber-700 uppercase font-semibold">Kredit</div>
-                            <div class="text-base font-extrabold text-amber-800" id="ls-total-kredit">Rp 0</div>
-                        </div>
-                        <div class="bg-orange-50 rounded-xl p-3">
-                            <div class="text-[10px] text-orange-700 uppercase font-semibold">Pengeluaran</div>
-                            <div class="text-base font-extrabold text-orange-800" id="ls-total-pengeluaran">Rp 0</div>
-                        </div>
-                        <div class="bg-slate-800 rounded-xl p-3">
-                            <div class="text-[10px] text-slate-300 uppercase font-semibold">Harus Disetor</div>
-                            <div class="text-base font-extrabold text-white" id="ls-total-setoran">Rp 0</div>
+                <div id="laporan-saya-kosong" class="hidden text-xs text-slate-400 text-center py-8">Belum ada transaksi, pengantaran, atau pembayaran pada tanggal ini.</div>
+
+                <div id="laporan-saya-content" class="hidden space-y-5">
+                    <!-- Harus Disetor -->
+                    <div class="bg-slate-800 rounded-2xl p-4 text-white">
+                        <div class="text-[10px] uppercase text-slate-300 font-semibold">Uang yang Harus Disetor</div>
+                        <div id="ls-total-setoran" class="text-3xl font-extrabold mt-0.5">Rp 0</div>
+                        <div class="mt-3 pt-2 border-t border-slate-600 text-[11px] text-slate-300 space-y-1">
+                            <div class="flex justify-between"><span>Cash dari pengantaran barang</span><span id="ls-cash-order">Rp 0</span></div>
+                            <div class="flex justify-between"><span>+ Penagihan kredit (Cash)</span><span id="ls-tagih-cash">Rp 0</span></div>
+                            <div class="flex justify-between"><span>− Pengeluaran</span><span id="ls-keluar">Rp 0</span></div>
                         </div>
                     </div>
+
+                    <!-- KAS: pengantaran, penagihan, pengeluaran -->
+                    <div id="ls-pengantaran-wrapper" class="hidden">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Barang yang Diantar Hari Ini</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Uang Cash dari sini yang ikut disetor. Kredit tidak.</p>
+                        <div id="ls-pengantaran-list" class="space-y-2"></div>
+                    </div>
+                    <div id="ls-pembayaran-wrapper" class="hidden">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Pembayaran Kredit Diterima</h3>
+                        <p id="ls-pembayaran-ringkas" class="text-[10px] text-slate-400 mb-2"></p>
+                        <div id="ls-pembayaran-list" class="space-y-2"></div>
+                    </div>
+                    <div id="ls-pengeluaran-wrapper" class="hidden">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Pengeluaran</h3>
+                        <div id="ls-pengeluaran-list" class="space-y-2"></div>
+                    </div>
+
+                    <!-- CLOSING: performa -->
                     <div>
-                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Closing per Outlet</h3>
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Closing Hari Ini</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Order yang Anda ambil hari ini, termasuk yang barangnya belum diantar.</p>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <div class="bg-emerald-50 rounded-xl p-2.5">
+                                <div class="text-[9px] text-emerald-700 uppercase font-semibold">Total Closing</div>
+                                <div class="text-sm font-extrabold text-emerald-800" id="ls-total-closing">Rp 0</div>
+                            </div>
+                            <div class="bg-slate-50 rounded-xl p-2.5">
+                                <div class="text-[9px] text-slate-500 uppercase font-semibold">Sudah Terkirim</div>
+                                <div class="text-sm font-extrabold text-slate-800" id="ls-closing-terkirim">Rp 0</div>
+                            </div>
+                            <div class="bg-amber-50 rounded-xl p-2.5">
+                                <div class="text-[9px] text-amber-700 uppercase font-semibold">Menunggu Kirim</div>
+                                <div class="text-sm font-extrabold text-amber-800" id="ls-menunggu-kirim">Rp 0</div>
+                            </div>
+                        </div>
                         <div id="ls-closings-list" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Total per produk -->
+                    <div id="ls-produk-wrapper" class="hidden">
+                        <div class="flex justify-between items-baseline mb-2">
+                            <h3 class="text-xs font-bold uppercase text-slate-500">Total per Produk</h3>
+                            <span class="text-[10px] text-slate-400">closing yang sudah terkirim</span>
+                        </div>
+                        <div id="ls-produk-list" class="space-y-1"></div>
+                        <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2 mt-2">
+                            <span>Total Item Terjual</span><span id="ls-total-item">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -757,8 +819,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Hari Ini', bulanan: 'Progres Bulanan', kirim: 'Konfirmasi Pengiriman' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Ringkasan closing & setoran Anda', bulanan: 'Pilih bulan untuk lihat progres', kirim: 'Selesaikan order yang menunggu diantar' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Penutupan', bulanan: 'Progres Bulanan', kirim: 'Konfirmasi Pengiriman' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Harus disetor & rincian closing', bulanan: 'Pilih bulan untuk lihat progres', kirim: 'Selesaikan order yang menunggu diantar' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -866,6 +928,20 @@
             select.innerHTML = optionsHtml;
         }
 
+        // ---- helper tampilan untuk Laporan Penutupan & Progres Bulanan ----
+        function rpApp(n) { return 'Rp ' + (Number(n) || 0).toLocaleString('id-ID'); }
+        function escApp(s) {
+            return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function tglLokalApp(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        function badgeMetodeApp(m) {
+            if (m === 'Cash') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>';
+            if (m === 'Kredit') return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
+            return `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">${escApp(m)}</span>`;
+        }
+
         function loadBulanProgress() {
             const savedName = localStorage.getItem('sinar77_sales_rep');
             const loading = document.getElementById('bulan-loading');
@@ -884,27 +960,42 @@
             content.classList.add('hidden');
             empty.classList.add('hidden');
 
-            fetch(`${APPS_SCRIPT_URL}?action=progress_bulan_ini&sales_rep=${encodeURIComponent(savedName)}&bulan=${bulanDipilih}`)
+            fetch(`${APPS_SCRIPT_URL}?action=progres_bulanan&bulan=${bulanDipilih}&sales_rep=${encodeURIComponent(savedName)}`)
                 .then(res => res.json())
                 .then(result => {
                     loading.classList.add('hidden');
-                    if (result.status !== 'success') { empty.classList.remove('hidden'); return; }
+                    if (result.status !== 'success' || !result.sales || !result.sales[0]) { empty.classList.remove('hidden'); return; }
 
+                    const s = result.sales[0];
                     content.classList.remove('hidden');
-                    document.getElementById('bv-kunjungan').innerText = result.total_kunjungan_bulan;
-                    document.getElementById('bv-target').innerText = result.target_bulanan;
-                    document.getElementById('bv-persen').innerText = result.persen_target_bulanan;
-                    document.getElementById('bv-bar').style.width = Math.min(result.persen_target_bulanan, 100) + '%';
 
-                    // Tampilkan detail per produk dulu, baru total gabungannya — sesuai cara hitung yang diminta
-                    if (result.item_summary_bulan.length === 0) {
-                        document.getElementById('bv-item-detail').innerHTML = '<p class="text-slate-400">Belum ada penjualan bulan ini.</p>';
+                    document.getElementById('bv-kunjungan').innerText = s.kunjungan_total;
+                    document.getElementById('bv-target').innerText = s.target_kunjungan;
+                    document.getElementById('bv-persen').innerText = s.persen_kunjungan;
+                    document.getElementById('bv-bar').style.width = Math.min(s.persen_kunjungan, 100) + '%';
+                    document.getElementById('bv-rata').innerText = s.rata_kunjungan_per_hari;
+                    document.getElementById('bv-hari-aktif').innerText = s.hari_aktif;
+                    const proyeksiWrap = document.getElementById('bv-proyeksi-wrap');
+                    if (s.proyeksi_kunjungan !== null && s.proyeksi_kunjungan !== undefined) {
+                        document.getElementById('bv-proyeksi').innerText = s.proyeksi_kunjungan;
+                        proyeksiWrap.classList.remove('hidden');
                     } else {
-                        document.getElementById('bv-item-detail').innerHTML = result.item_summary_bulan.map(it =>
-                            `<div class="flex justify-between"><span>${it.item}</span><span>${it.qty}</span></div>`
-                        ).join('');
+                        proyeksiWrap.classList.add('hidden');
                     }
-                    document.getElementById('bv-item-total').innerText = result.total_item_terjual_bulan + ' item';
+
+                    document.getElementById('bv-omzet').innerText = rpApp(s.omzet_closing);
+                    document.getElementById('bv-omzet-menunggu').innerText = s.omzet_menunggu_kirim > 0 ? `termasuk ${rpApp(s.omzet_menunggu_kirim)} menunggu kirim` : '';
+                    document.getElementById('bv-konversi').innerText = s.konversi_persen;
+                    document.getElementById('bv-penagihan').innerText = rpApp(s.penagihan_cash + s.penagihan_transfer);
+                    document.getElementById('bv-penagihan-rinci').innerText = s.jumlah_pembayaran > 0
+                        ? `${s.jumlah_pembayaran} pembayaran • Cash ${rpApp(s.penagihan_cash)} • Transfer ${rpApp(s.penagihan_transfer)}` : 'belum ada pembayaran';
+                    document.getElementById('bv-trial').innerText = s.pelanggan_baru_trial;
+
+                    // Detail per produk dulu, baru total gabungannya
+                    document.getElementById('bv-item-detail').innerHTML = s.item_terjual.length === 0
+                        ? '<p class="text-slate-400">Belum ada penjualan terkirim bulan ini.</p>'
+                        : s.item_terjual.map(it => `<div class="flex justify-between"><span>${escApp(it.item)}</span><span>${it.qty}</span></div>`).join('');
+                    document.getElementById('bv-item-total').innerText = s.total_item_terjual + ' item';
                 })
                 .catch(() => { loading.classList.add('hidden'); empty.classList.remove('hidden'); });
         }
@@ -2012,42 +2103,132 @@
             const loading = document.getElementById('laporan-saya-loading');
             const kosong = document.getElementById('laporan-saya-kosong');
             const content = document.getElementById('laporan-saya-content');
+            const inputTgl = document.getElementById('laporan_tanggal_saya');
+            if (!inputTgl.value) inputTgl.value = tglLokalApp(new Date());
+            const tanggal = inputTgl.value;
+            const teksKosong = 'Belum ada transaksi, pengantaran, atau pembayaran pada tanggal ini.';
 
-            if (!salesRep) { loading.classList.add('hidden'); kosong.classList.remove('hidden'); kosong.innerText = 'Isi salah satu form dulu supaya nama Anda tercatat.'; return; }
+            if (!salesRep) {
+                loading.classList.add('hidden');
+                kosong.innerText = 'Isi salah satu form dulu supaya nama Anda tercatat.';
+                kosong.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
 
             loading.classList.remove('hidden');
             kosong.classList.add('hidden');
             content.classList.add('hidden');
 
-            fetch(`${APPS_SCRIPT_URL}?action=laporan_penutupan&sales_rep=${encodeURIComponent(salesRep)}`)
+            fetch(`${APPS_SCRIPT_URL}?action=laporan_penutupan&sales_rep=${encodeURIComponent(salesRep)}&tanggal=${tanggal}`)
                 .then(res => res.json())
                 .then(result => {
                     loading.classList.add('hidden');
-                    if (result.status !== 'success' || result.closings.length === 0) {
+                    if (result.status !== 'success') {
+                        kosong.innerText = 'Gagal memuat laporan. Coba Refresh.';
+                        kosong.classList.remove('hidden');
+                        return;
+                    }
+                    const kas = result.kas;
+                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0;
+                    if (result.closings.length === 0 && !adaKas) {
+                        kosong.innerText = teksKosong;
                         kosong.classList.remove('hidden');
                         return;
                     }
 
-                    document.getElementById('ls-total-penjualan').innerText = 'Rp ' + result.total_penjualan.toLocaleString('id-ID');
-                    document.getElementById('ls-total-item').innerText = result.total_item_terjual;
-                    document.getElementById('ls-total-cash').innerText = 'Rp ' + result.total_cash.toLocaleString('id-ID');
-                    document.getElementById('ls-total-kredit').innerText = 'Rp ' + result.total_kredit.toLocaleString('id-ID');
-                    document.getElementById('ls-total-pengeluaran').innerText = 'Rp ' + result.total_pengeluaran.toLocaleString('id-ID');
-                    document.getElementById('ls-total-setoran').innerText = 'Rp ' + result.total_setoran.toLocaleString('id-ID');
+                    // ---- Harus Disetor + rumusnya ----
+                    document.getElementById('ls-total-setoran').innerText = rpApp(result.total_setoran);
+                    document.getElementById('ls-cash-order').innerText = rpApp(kas.cash_order);
+                    document.getElementById('ls-tagih-cash').innerText = rpApp(kas.penagihan_cash);
+                    document.getElementById('ls-keluar').innerText = rpApp(kas.total_pengeluaran);
 
-                    document.getElementById('ls-closings-list').innerHTML = result.closings.map(c => {
-                        const badge = c.metode_bayar === 'Cash'
-                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
-                            : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>`;
-                        return `<div class="flex justify-between items-center bg-slate-50 rounded-lg p-2.5 text-xs">
-                            <span class="font-medium">${c.outlet_name}</span>
-                            <div class="flex items-center gap-2">${badge}<span class="font-semibold">Rp ${c.grand_total.toLocaleString('id-ID')}</span></div>
-                        </div>`;
-                    }).join('');
+                    // ---- Kas: pengantaran ----
+                    const pengWrap = document.getElementById('ls-pengantaran-wrapper');
+                    if (kas.pengantaran.length > 0) {
+                        document.getElementById('ls-pengantaran-list').innerHTML = kas.pengantaran.map(p => {
+                            const beda = p.tanggal_order !== result.tanggal || p.sales_closing !== salesRep;
+                            return `<div class="bg-slate-50 rounded-xl p-2.5 text-xs">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="font-medium min-w-0">${escApp(p.outlet_name)}</span>
+                                    <span class="flex items-center gap-2 shrink-0">${badgeMetodeApp(p.metode_bayar)}<span class="font-semibold">${rpApp(p.total)}</span></span>
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">${p.items.map(it => `${escApp(it.item)} ${it.qty}`).join(', ')}</div>
+                                ${beda ? `<div class="text-[10px] text-amber-600 mt-0.5">Order diambil ${escApp(p.tanggal_order)} oleh ${escApp(p.sales_closing)}</div>` : ''}
+                            </div>`;
+                        }).join('');
+                        pengWrap.classList.remove('hidden');
+                    } else {
+                        pengWrap.classList.add('hidden');
+                    }
+
+                    // ---- Kas: pembayaran kredit ----
+                    const bayarWrap = document.getElementById('ls-pembayaran-wrapper');
+                    if (kas.penagihan.length > 0) {
+                        document.getElementById('ls-pembayaran-list').innerHTML = kas.penagihan.map(p => `
+                            <div class="flex justify-between items-center bg-sky-50 rounded-xl p-2.5 text-xs gap-2">
+                                <span class="min-w-0"><span class="text-slate-400">${escApp(p.waktu)}</span> — <span class="font-medium">${escApp(p.outlet_name)}</span></span>
+                                <span class="flex items-center gap-2 shrink-0">${badgeMetodeApp(p.metode_bayar)}<span class="font-semibold">${rpApp(p.jumlah)}</span></span>
+                            </div>`).join('');
+                        document.getElementById('ls-pembayaran-ringkas').innerText =
+                            `Cash ${rpApp(kas.penagihan_cash)} (ikut disetor) • Transfer ${rpApp(kas.penagihan_transfer)}`;
+                        bayarWrap.classList.remove('hidden');
+                    } else {
+                        bayarWrap.classList.add('hidden');
+                    }
+
+                    // ---- Kas: pengeluaran ----
+                    const keluarWrap = document.getElementById('ls-pengeluaran-wrapper');
+                    if (kas.pengeluaran.length > 0) {
+                        document.getElementById('ls-pengeluaran-list').innerHTML = kas.pengeluaran.map(x => `
+                            <div class="flex justify-between bg-orange-50 rounded-xl p-2.5 text-xs gap-2">
+                                <span class="min-w-0"><span class="text-slate-400">${escApp(x.waktu)}</span> — ${escApp(x.kategori)}${x.keterangan ? ' (' + escApp(x.keterangan) + ')' : ''}</span>
+                                <span class="font-semibold shrink-0">${rpApp(x.jumlah)}</span>
+                            </div>`).join('');
+                        keluarWrap.classList.remove('hidden');
+                    } else {
+                        keluarWrap.classList.add('hidden');
+                    }
+
+                    // ---- Closing (performa) ----
+                    document.getElementById('ls-total-closing').innerText = rpApp(result.total_closing);
+                    document.getElementById('ls-closing-terkirim').innerText = rpApp(result.total_closing_terkirim);
+                    document.getElementById('ls-menunggu-kirim').innerText = rpApp(result.total_menunggu_kirim);
+                    document.getElementById('ls-closings-list').innerHTML = result.closings.length === 0
+                        ? '<p class="text-xs text-slate-400 text-center py-2">Tidak ada closing pada tanggal ini.</p>'
+                        : result.closings.map(c => {
+                            const menunggu = c.status_pengiriman === 'Menunggu Kirim';
+                            const diantarLain = !menunggu && c.petugas_antar && (c.petugas_antar !== salesRep || c.tanggal_kirim !== result.tanggal);
+                            return `<div class="border border-slate-200 rounded-xl p-3">
+                                <div class="flex justify-between items-center mb-1.5 gap-2">
+                                    <span class="font-bold text-sm min-w-0">${escApp(c.outlet_name)}</span>
+                                    <span class="flex items-center gap-1 shrink-0">${badgeMetodeApp(c.metode_bayar)}${menunggu ? '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">Menunggu Kirim</span>' : ''}</span>
+                                </div>
+                                ${c.items.map(it => `<div class="flex justify-between text-[11px] text-slate-600 gap-2"><span class="min-w-0">${escApp(it.item)}</span><span class="shrink-0">${it.qty} × ${rpApp(it.price)} = <b>${rpApp(it.total)}</b></span></div>`).join('')}
+                                <div class="flex justify-between text-xs font-bold border-t border-slate-100 pt-1 mt-1.5"><span>Total</span><span>${rpApp(c.grand_total)}</span></div>
+                                ${c.metode_bayar === 'Kredit' && c.jatuh_tempo ? `<div class="text-[10px] text-amber-600 mt-1">Jatuh tempo ${escApp(c.jatuh_tempo)}</div>` : ''}
+                                ${diantarLain ? `<div class="text-[10px] text-slate-500 mt-1">Diantar oleh ${escApp(c.petugas_antar)} pada ${escApp(c.tanggal_kirim)}</div>` : ''}
+                            </div>`;
+                        }).join('');
+
+                    // ---- Total per produk ----
+                    const produkWrap = document.getElementById('ls-produk-wrapper');
+                    if (result.item_summary.length > 0) {
+                        document.getElementById('ls-produk-list').innerHTML = result.item_summary.map(it =>
+                            `<div class="flex justify-between text-xs"><span>${escApp(it.item)}</span><span class="font-semibold">${it.qty}</span></div>`).join('');
+                        document.getElementById('ls-total-item').innerText = result.total_item_terjual;
+                        produkWrap.classList.remove('hidden');
+                    } else {
+                        produkWrap.classList.add('hidden');
+                    }
 
                     content.classList.remove('hidden');
                 })
-                .catch(() => { loading.classList.add('hidden'); kosong.classList.remove('hidden'); });
+                .catch(() => {
+                    loading.classList.add('hidden');
+                    kosong.innerText = 'Gagal memuat laporan. Coba Refresh.';
+                    kosong.classList.remove('hidden');
+                });
         }
     </script>
 </body>
