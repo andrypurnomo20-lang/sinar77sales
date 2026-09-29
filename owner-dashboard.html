@@ -31,6 +31,7 @@
             <button onclick="showTab('dashboard')" id="tab-btn-dashboard" class="tab-nav-btn active shrink-0">📊 Dashboard</button>
             <button onclick="showTab('progres')" id="tab-btn-progres" class="tab-nav-btn shrink-0">🚶 Progres Sales</button>
             <button onclick="showTab('riwayat')" id="tab-btn-riwayat" class="tab-nav-btn shrink-0">🧾 Riwayat Transaksi</button>
+            <button onclick="showTab('pelanggan')" id="tab-btn-pelanggan" class="tab-nav-btn shrink-0">👥 Pelanggan</button>
             <button onclick="showTab('setoran')" id="tab-btn-setoran" class="tab-nav-btn shrink-0">💵 Setoran Harian</button>
             <button onclick="showTab('stok')" id="tab-btn-stok" class="tab-nav-btn shrink-0">📦 Stok Harian</button>
             <button onclick="showTab('laporan')" id="tab-btn-laporan" class="tab-nav-btn shrink-0">📋 Laporan Penutupan</button>
@@ -329,6 +330,33 @@
             </div>
         </div>
         <!-- ============ /TAB: PROGRES SALES HARI INI ============ -->
+
+        <div id="tab-pelanggan" class="tab-panel hidden">
+            <div class="card p-4 mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                    <select id="pel_filter_sales" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="">Semua Sales</option>
+                    </select>
+                    <select id="pel_filter_status" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="">Semua Status</option>
+                        <option value="Active">Aktif</option>
+                        <option value="Trial">Baru Bulan Ini (Trial)</option>
+                        <option value="Follow-up">Follow-up</option>
+                    </select>
+                    <select id="pel_filter_sort" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="omzet">Urutkan: Omzet Terbesar</option>
+                        <option value="last_order">Urutkan: Order Terlama Dulu</option>
+                        <option value="nama">Urutkan: Nama A-Z</option>
+                    </select>
+                    <input type="text" id="pel_cari" oninput="renderDirektoriPelanggan()" placeholder="Cari nama outlet..." class="px-3 py-2 border border-slate-300 rounded-xl text-xs">
+                </div>
+                <p id="pel-ringkasan" class="text-[10px] text-slate-400"></p>
+            </div>
+
+            <div id="pel-loading" class="text-center py-16 text-slate-400 text-sm">Memuat direktori pelanggan...</div>
+            <div id="pel-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Tidak ada pelanggan yang cocok dengan filter ini.</div>
+            <div id="pel-list" class="space-y-3"></div>
+        </div>
 
         <!-- ============ TAB: SETORAN HARIAN ============ -->
         <div id="tab-setoran" class="tab-panel hidden">
@@ -655,6 +683,22 @@
                 </button>
 
                 <div class="border-t border-slate-200 pt-4">
+                    <h3 class="text-xs font-bold uppercase text-slate-600 mb-1">Koreksi Saldo Manual</h3>
+                    <p class="text-[10px] text-slate-400 mb-2">Samakan saldo sistem dengan hasil hitung fisik (stock opname) kapan saja, tanpa menunggu Stok Sore diisi.</p>
+                    <div class="flex flex-wrap gap-2 items-end">
+                        <div class="flex-grow min-w-[140px]">
+                            <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Produk</label>
+                            <select id="koreksi_depo_produk" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white"></select>
+                        </div>
+                        <div class="w-28">
+                            <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Saldo Fisik</label>
+                            <input type="number" id="koreksi_depo_saldo" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm" placeholder="0">
+                        </div>
+                        <button onclick="simpanKoreksiDepo()" id="koreksi-depo-btn" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl">Set Saldo</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200 pt-4">
                     <h3 class="text-xs font-bold uppercase text-slate-600 mb-2">Catat Penerimaan dari Pabrik</h3>
                     <div id="pengiriman-pabrik-inputs" class="space-y-2 mb-3"></div>
                     <button onclick="simpanPengirimanPabrik()" id="pengiriman-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm">
@@ -820,12 +864,13 @@
         let riwayatSudahDimuat = false;
         let pengaturanSudahDimuat = false;
         let daftarProdukStok = []; // daftar nama produk dari PRICE LIST, dipakai buat form stok pagi
+        let pelangganSudahDimuat = false;
 
         function showTab(name) {
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
 
-            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan'].forEach(t => {
+            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan', 'pelanggan'].forEach(t => {
                 document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
             });
 
@@ -839,6 +884,7 @@
             if (name === 'stok' && !stokSudahDimuat) { stokSudahDimuat = true; initStokTab(); }
             if (name === 'laporan' && !laporanSudahDimuat) { laporanSudahDimuat = true; initLaporanTab(); }
             if (name === 'pengaturan' && !pengaturanSudahDimuat) { pengaturanSudahDimuat = true; loadSalesListSetoran(); initEditOrderTab(); initNotaTab(); }
+            if (name === 'pelanggan' && !pelangganSudahDimuat) { pelangganSudahDimuat = true; initPelangganTab(); }
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
@@ -1284,6 +1330,7 @@
                 .then(result => {
                     if (result.status === 'success') {
                         daftarProdukStok = result.products.map(p => p.nama);
+                        isiDropdownKoreksiDepo();
                         renderInputPengirimanPabrik();
                     }
                 });
@@ -1292,6 +1339,98 @@
         }
 
         // ============ STOK DEPO ============
+        // ============ DIREKTORI PELANGGAN ============
+        let dataDirektoriPelanggan = [];
+
+        function initPelangganTab() {
+            document.getElementById('pel-loading').classList.remove('hidden');
+            document.getElementById('pel-kosong').classList.add('hidden');
+            document.getElementById('pel-list').innerHTML = '';
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=direktori_pelanggan`)
+                .then(result => {
+                    document.getElementById('pel-loading').classList.add('hidden');
+                    if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
+                    dataDirektoriPelanggan = result.pelanggan;
+
+                    const select = document.getElementById('pel_filter_sales');
+                    if (select.options.length <= 1) {
+                        const namaSales = [...new Set(result.pelanggan.map(p => p.sales_rep).filter(Boolean))].sort();
+                        select.innerHTML = '<option value="">Semua Sales</option>' + namaSales.map(n => `<option value="${escOwner(n)}">${escOwner(n)}</option>`).join('');
+                    }
+                    renderDirektoriPelanggan();
+                })
+                .catch(err => { document.getElementById('pel-loading').classList.add('hidden'); alert('Koneksi error: ' + err.message); });
+        }
+
+        function renderDirektoriPelanggan() {
+            const salesF = document.getElementById('pel_filter_sales').value;
+            const statusF = document.getElementById('pel_filter_status').value;
+            const sortF = document.getElementById('pel_filter_sort').value;
+            const cari = document.getElementById('pel_cari').value.trim().toLowerCase();
+
+            let list = dataDirektoriPelanggan.filter(p => {
+                if (salesF && p.sales_rep !== salesF) return false;
+                if (statusF === 'Trial' && !p.trial_bulan_ini) return false;
+                if (statusF && statusF !== 'Trial' && p.status !== statusF) return false;
+                if (cari && !p.name.toLowerCase().includes(cari)) return false;
+                return true;
+            });
+
+            if (sortF === 'omzet') list.sort((a, b) => b.total_omzet - a.total_omzet);
+            else if (sortF === 'last_order') list.sort((a, b) => (a.last_order || '').localeCompare(b.last_order || ''));
+            else list.sort((a, b) => a.name.localeCompare(b.name));
+
+            document.getElementById('pel-ringkasan').innerText = `Menampilkan ${list.length} dari ${dataDirektoriPelanggan.length} pelanggan`;
+            document.getElementById('pel-kosong').classList.toggle('hidden', list.length > 0);
+            document.getElementById('pel-list').innerHTML = list.map(p => renderKartuPelanggan(p)).join('');
+        }
+
+        function badgeStatusPelanggan(p) {
+            if (p.trial_bulan_ini) return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Baru Bulan Ini</span>';
+            if (p.status === 'Active') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Aktif</span>';
+            return `<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">${escOwner(p.status || '-')}</span>`;
+        }
+
+        function renderKartuPelanggan(p) {
+            const telp = (p.phone || '').toString().replace(/[^0-9]/g, '');
+            const wa = telp.startsWith('0') ? '62' + telp.slice(1) : telp;
+            const mapsBtn = (p.lat && p.lng)
+                ? `<a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">📍 Lokasi</a>` : '';
+            const telpBtn = telp ? `<a href="tel:${telp}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">📞 Telp</a>` : '';
+            const waBtn = telp ? `<a href="https://wa.me/${wa}" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg">💬 WA</a>` : '';
+
+            return `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start gap-2 mb-1">
+                        <div class="min-w-0">
+                            <div class="font-bold text-slate-900">${escOwner(p.name)}</div>
+                            <div class="text-[11px] text-slate-500">${escOwner(p.owner || '-')} • ${escOwner(p.address || '')}, ${escOwner(p.city || '')}</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1 shrink-0">
+                            ${badgeStatusPelanggan(p)}
+                            <span class="text-[10px] text-slate-400">${escOwner(p.tipe || '-')} • Sales: ${escOwner(p.sales_rep || '-')}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 my-2.5 text-center">
+                        <div class="bg-slate-50 rounded-lg py-1.5">
+                            <div class="text-[9px] text-slate-500 uppercase">Order Terakhir</div>
+                            <div class="text-xs font-bold text-slate-800">${escOwner(p.last_order || '-')}</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg py-1.5">
+                            <div class="text-[9px] text-slate-500 uppercase">Jumlah Order</div>
+                            <div class="text-xs font-bold text-slate-800">${p.total_orders}x</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg py-1.5">
+                            <div class="text-[9px] text-slate-500 uppercase">Total Omzet</div>
+                            <div class="text-xs font-bold text-slate-800">${rupiah(p.total_omzet)}</div>
+                        </div>
+                    </div>
+                    ${p.piutang > 0 ? `<div class="text-[11px] text-red-600 font-semibold mb-2">Piutang belum lunas: ${rupiah(p.piutang)}</div>` : ''}
+                    <div class="flex gap-2">${telpBtn}${waBtn}${mapsBtn}</div>
+                </div>`;
+        }
+
         function loadStokDepo() {
             document.getElementById('depo-loading').classList.remove('hidden');
             document.getElementById('depo-tabel-wrapper').classList.add('hidden');
@@ -1311,6 +1450,41 @@
                     document.getElementById('depo-tabel-wrapper').classList.remove('hidden');
                 });
         }
+
+        function isiDropdownKoreksiDepo() {
+            const select = document.getElementById('koreksi_depo_produk');
+            if (select.options.length > 0 || daftarProdukStok.length === 0) return;
+            select.innerHTML = daftarProdukStok.map(p => `<option value="${escOwner(p)}">${escOwner(p)}</option>`).join('');
+        }
+
+        function simpanKoreksiDepo() {
+            const produk = document.getElementById('koreksi_depo_produk').value;
+            const saldoBaru = document.getElementById('koreksi_depo_saldo').value;
+            if (!produk || saldoBaru === '') { alert('Pilih produk dan isi saldo fisik dulu.'); return; }
+            if (!confirm(`Set saldo Depo "${produk}" jadi ${saldoBaru}? Ini akan menimpa saldo sistem saat ini.`)) return;
+
+            const btn = document.getElementById('koreksi-depo-btn');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'koreksi_stok_depo', produk, saldo_baru: saldoBaru, dicatat_oleh: 'Owner' })
+            })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = 'Set Saldo';
+                    if (result.status === 'success') {
+                        alert(`Saldo "${produk}" diubah dari ${result.saldo_lama} jadi ${result.saldo_baru}.`);
+                        document.getElementById('koreksi_depo_saldo').value = '';
+                        loadStokDepo();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Set Saldo'; alert('Koneksi error: ' + err.message); });
+        }
+
 
         function renderInputPengirimanPabrik() {
             const container = document.getElementById('pengiriman-pabrik-inputs');
