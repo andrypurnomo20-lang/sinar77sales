@@ -279,9 +279,54 @@
 
         <!-- ============ TAB: PROGRES SALES HARI INI ============ -->
         <div id="tab-progres" class="tab-panel hidden">
-            <div id="progres-loading" class="text-center py-16 text-slate-400 text-sm">Memuat progres sales hari ini...</div>
-            <div id="progres-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Belum ada aktivitas sales tercatat hari ini.</div>
-            <div id="progres-list" class="space-y-4"></div>
+            <!-- Pilihan tampilan: Hari Ini | Bulanan -->
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                <div class="inline-flex bg-slate-200 rounded-xl p-1 text-xs font-semibold">
+                    <button id="progres-mode-harian" onclick="setProgresMode('harian')" class="px-3.5 py-1.5 rounded-lg bg-white shadow text-slate-800">Hari Ini</button>
+                    <button id="progres-mode-bulanan" onclick="setProgresMode('bulanan')" class="px-3.5 py-1.5 rounded-lg text-slate-500">Bulanan</button>
+                </div>
+                <div id="progres-bulan-controls" class="hidden items-center gap-2 ml-auto">
+                    <select id="progres_bulan" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white"></select>
+                    <button onclick="loadProgresBulanan()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl">Tampilkan</button>
+                </div>
+            </div>
+
+            <!-- Hari Ini (seperti sebelumnya) -->
+            <div id="progres-harian">
+                <div id="progres-loading" class="text-center py-16 text-slate-400 text-sm">Memuat progres sales hari ini...</div>
+                <div id="progres-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Belum ada aktivitas sales tercatat hari ini.</div>
+                <div id="progres-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Bulanan -->
+            <div id="progres-bulanan" class="hidden">
+                <div id="pb-loading" class="hidden text-center py-16 text-slate-400 text-sm">Memuat progres bulanan...</div>
+                <div id="pb-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Belum ada aktivitas sales pada bulan ini.</div>
+                <div id="pb-content" class="hidden space-y-4">
+                    <p id="pb-periode" class="text-[11px] text-slate-500"></p>
+
+                    <div class="card p-4 overflow-x-auto">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Perbandingan Sales</h3>
+                        <table class="w-full text-xs border-collapse min-w-[640px]">
+                            <thead>
+                                <tr class="bg-slate-100 text-left">
+                                    <th class="p-2 rounded-l-lg">Sales</th>
+                                    <th class="p-2 text-center">Kunjungan</th>
+                                    <th class="p-2 text-center">Konversi</th>
+                                    <th class="p-2 text-right">Omzet</th>
+                                    <th class="p-2 text-right">Penagihan</th>
+                                    <th class="p-2 text-center">Baru (Trial)</th>
+                                    <th class="p-2 text-right">Selisih Setoran</th>
+                                    <th class="p-2 text-right rounded-r-lg">Piutang</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pb-tabel-body"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="pb-cards" class="space-y-4"></div>
+                </div>
+            </div>
         </div>
         <!-- ============ /TAB: PROGRES SALES HARI INI ============ -->
 
@@ -623,8 +668,8 @@
         <!-- ============ TAB: LAPORAN PENUTUPAN ============ -->
         <div id="tab-laporan" class="tab-panel hidden">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 max-w-3xl">
-                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-1">Laporan Penutupan Harian</h2>
-                <p class="text-xs text-slate-500 -mt-2">Rincian lengkap penjualan 1 sales di 1 tanggal — per transaksi, ringkasan cash/kredit/penagihan/setoran, dan total per produk.</p>
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-1">Laporan Penutupan</h2>
+                <p class="text-xs text-slate-500 -mt-2">Uang yang harus disetor, rincian kas hari itu, dan performa closing 1 sales di 1 tanggal.</p>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -646,64 +691,67 @@
                 <div id="laporan-loading" class="hidden text-xs text-slate-400 text-center py-8">Memuat laporan...</div>
                 <div id="laporan-kosong" class="hidden text-xs text-slate-400 text-center py-8">Belum ada transaksi untuk sales & tanggal ini.</div>
 
-                <div id="laporan-content" class="hidden space-y-4">
-                    <!-- Ringkasan Angka -->
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div class="bg-emerald-50 rounded-xl p-3">
-                            <div class="text-[10px] text-emerald-700 uppercase font-semibold">Total Penjualan</div>
-                            <div class="text-lg font-extrabold text-emerald-800" id="lap-total-penjualan">Rp 0</div>
+                <div id="laporan-content" class="hidden space-y-5">
+                    <!-- Uang yang Harus Disetor (satu angka dengan Setoran Harian & app sales) -->
+                    <div class="bg-slate-800 rounded-2xl p-4 text-white">
+                        <div class="text-[10px] uppercase text-slate-300 font-semibold">Uang yang Harus Disetor</div>
+                        <div id="lap-total-setoran" class="text-3xl font-extrabold mt-0.5">Rp 0</div>
+                        <div class="mt-3 pt-2 border-t border-slate-600 text-[11px] text-slate-300 space-y-1">
+                            <div class="flex justify-between"><span>Cash dari pengantaran barang</span><span id="lap-cash-order">Rp 0</span></div>
+                            <div class="flex justify-between"><span>+ Penagihan kredit (Cash)</span><span id="lap-tagih-cash">Rp 0</span></div>
+                            <div class="flex justify-between"><span>− Pengeluaran</span><span id="lap-keluar">Rp 0</span></div>
                         </div>
-                        <div class="bg-indigo-50 rounded-xl p-3">
-                            <div class="text-[10px] text-indigo-700 uppercase font-semibold">Total Item Terjual</div>
-                            <div class="text-lg font-extrabold text-indigo-800" id="lap-total-item">0</div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <div class="text-[10px] text-slate-500 uppercase font-semibold">Total Cash (Order)</div>
-                            <div class="text-lg font-extrabold text-slate-800" id="lap-total-cash">Rp 0</div>
-                        </div>
-                        <div class="bg-amber-50 rounded-xl p-3">
-                            <div class="text-[10px] text-amber-700 uppercase font-semibold">Total Kredit</div>
-                            <div class="text-lg font-extrabold text-amber-800" id="lap-total-kredit">Rp 0</div>
-                        </div>
-                        <div class="bg-sky-50 rounded-xl p-3">
-                            <div class="text-[10px] text-sky-700 uppercase font-semibold">Penagihan Kredit (Cash)</div>
-                            <div class="text-lg font-extrabold text-sky-800" id="lap-total-penagihan">Rp 0</div>
-                        </div>
-                        <div class="bg-orange-50 rounded-xl p-3">
-                            <div class="text-[10px] text-orange-700 uppercase font-semibold">Total Pengeluaran</div>
-                            <div class="text-lg font-extrabold text-orange-800" id="lap-total-pengeluaran">Rp 0</div>
-                        </div>
-                        <div class="bg-slate-800 rounded-xl p-3 col-span-2 md:col-span-3">
-                            <div class="text-[10px] text-slate-300 uppercase font-semibold">Total Uang Harus Disetor (Cash Order + Penagihan Cash − Pengeluaran)</div>
-                            <div class="text-xl font-extrabold text-white" id="lap-total-setoran">Rp 0</div>
-                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2">Angka yang sama dengan tab Setoran Harian dan yang dilihat sales di app. Dihitung dari petugas yang mengantar dan tanggal barang terkirim.</p>
                     </div>
 
-                    <!-- Pembayaran Kredit yang Diterima -->
-                    <div id="lap-pembayaran-wrapper" class="hidden">
-                        <div class="flex justify-between items-baseline mb-2">
-                            <h3 class="text-xs font-bold uppercase text-slate-500">Rincian Pembayaran Kredit</h3>
-                            <span id="lap-pembayaran-ringkas" class="text-[10px] text-slate-400"></span>
-                        </div>
-                        <div id="lap-pembayaran-list" class="space-y-1"></div>
-                        <p class="text-[10px] text-slate-400 mt-1">Hanya yang Cash masuk hitungan uang yang harus disetor. Transfer langsung ke rekening.</p>
-                    </div>
-
-                    <!-- Pengeluaran Hari Ini -->
-                    <div id="lap-pengeluaran-wrapper" class="hidden">
-                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Rincian Pengeluaran</h3>
-                        <div id="lap-pengeluaran-list" class="space-y-1"></div>
-                    </div>
-
-                    <!-- Detail per Outlet/Transaksi -->
+                    <!-- BAGIAN 1: KAS -->
                     <div>
-                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Detail Closing per Outlet</h3>
+                        <h3 class="text-xs font-bold uppercase text-slate-700 mb-2 pb-1 border-b border-slate-200">Kas Hari Itu (Uang Fisik)</h3>
+                        <div class="space-y-4">
+                            <div id="lap-pengantaran-wrapper" class="hidden">
+                                <h4 class="text-[11px] font-bold uppercase text-slate-500 mb-1">Barang yang Diantar</h4>
+                                <div id="lap-pengantaran-list" class="space-y-1"></div>
+                            </div>
+                            <div id="lap-pembayaran-wrapper" class="hidden">
+                                <div class="flex justify-between items-baseline mb-1">
+                                    <h4 class="text-[11px] font-bold uppercase text-slate-500">Pembayaran Kredit Diterima</h4>
+                                    <span id="lap-pembayaran-ringkas" class="text-[10px] text-slate-400"></span>
+                                </div>
+                                <div id="lap-pembayaran-list" class="space-y-1"></div>
+                                <p class="text-[10px] text-slate-400 mt-1">Hanya yang Cash masuk hitungan setoran. Transfer langsung ke rekening.</p>
+                            </div>
+                            <div id="lap-pengeluaran-wrapper" class="hidden">
+                                <h4 class="text-[11px] font-bold uppercase text-slate-500 mb-1">Pengeluaran</h4>
+                                <div id="lap-pengeluaran-list" class="space-y-1"></div>
+                            </div>
+                            <p id="lap-kas-kosong" class="hidden text-xs text-slate-400">Tidak ada pengantaran, penagihan, maupun pengeluaran pada tanggal ini.</p>
+                        </div>
+                    </div>
+
+                    <!-- BAGIAN 2: CLOSING -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase text-slate-700 mb-1 pb-1 border-b border-slate-200">Closing Hari Itu (Performa Sales)</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Order yang diambil sales ini pada tanggal tersebut, termasuk yang barangnya belum diantar.</p>
+                        <div class="grid grid-cols-3 gap-3 mb-3">
+                            <div class="bg-emerald-50 rounded-xl p-3">
+                                <div class="text-[10px] text-emerald-700 uppercase font-semibold">Total Closing</div>
+                                <div class="text-base font-extrabold text-emerald-800" id="lap-total-closing">Rp 0</div>
+                            </div>
+                            <div class="bg-slate-50 rounded-xl p-3">
+                                <div class="text-[10px] text-slate-500 uppercase font-semibold">Sudah Terkirim</div>
+                                <div class="text-base font-extrabold text-slate-800" id="lap-closing-terkirim">Rp 0</div>
+                            </div>
+                            <div class="bg-amber-50 rounded-xl p-3">
+                                <div class="text-[10px] text-amber-700 uppercase font-semibold">Menunggu Kirim</div>
+                                <div class="text-base font-extrabold text-amber-800" id="lap-menunggu-kirim">Rp 0</div>
+                            </div>
+                        </div>
                         <div id="lap-closings-list" class="space-y-3"></div>
                     </div>
 
                     <!-- Total per Produk -->
                     <div>
-                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Total Penjualan per Produk (Hari Ini)</h3>
+                        <h3 class="text-xs font-bold uppercase text-slate-700 mb-2 pb-1 border-b border-slate-200">Total Penjualan per Produk <span class="normal-case font-normal text-slate-400">(closing yang sudah terkirim)</span></h3>
                         <table class="w-full text-xs border-collapse">
                             <thead>
                                 <tr class="bg-slate-100 text-left">
@@ -714,6 +762,9 @@
                             </thead>
                             <tbody id="lap-item-summary-body"></tbody>
                         </table>
+                        <div class="flex justify-between text-sm font-bold pt-2 mt-1 px-2">
+                            <span>Total Item Terjual</span><span id="lap-total-item">0</span>
+                        </div>
                     </div>
 
                     <button onclick="window.print()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-2.5 rounded-xl">
@@ -1464,6 +1515,183 @@
                 .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Nota Dibawa'; alert('Koneksi error: ' + err.message); });
         }
 
+        // ============ PROGRES SALES: BULANAN ============
+        let progresBulananSudahDimuat = false;
+        let dataProgresBulanan = [];
+
+        function setProgresMode(mode) {
+            const bulanan = mode === 'bulanan';
+            document.getElementById('progres-harian').classList.toggle('hidden', bulanan);
+            document.getElementById('progres-bulanan').classList.toggle('hidden', !bulanan);
+            const ctrl = document.getElementById('progres-bulan-controls');
+            ctrl.classList.toggle('hidden', !bulanan);
+            ctrl.classList.toggle('flex', bulanan);
+            const aktif = 'px-3.5 py-1.5 rounded-lg bg-white shadow text-slate-800';
+            const nonaktif = 'px-3.5 py-1.5 rounded-lg text-slate-500';
+            document.getElementById('progres-mode-harian').className = bulanan ? nonaktif : aktif;
+            document.getElementById('progres-mode-bulanan').className = bulanan ? aktif : nonaktif;
+            if (bulanan && !progresBulananSudahDimuat) {
+                progresBulananSudahDimuat = true;
+                isiDropdownBulanOwner();
+                loadProgresBulanan();
+            }
+        }
+
+        function isiDropdownBulanOwner() {
+            const select = document.getElementById('progres_bulan');
+            if (select.options.length > 0) return;
+            const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const today = new Date();
+            let html = '';
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                html += `<option value="${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}">${namaBulan[d.getMonth()]} ${d.getFullYear()}</option>`;
+            }
+            select.innerHTML = html;
+        }
+
+        function teksSelisihRp(n) { return n === 0 ? 'Rp 0' : (n > 0 ? '+' : '−') + rupiah(Math.abs(n)); }
+        function warnaSelisihRp(n) { return n === 0 ? 'text-emerald-700' : (n < 0 ? 'text-red-600' : 'text-amber-600'); }
+        function angkaRapi(n) { return Number(n || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+
+        function loadProgresBulanan() {
+            const bulan = document.getElementById('progres_bulan').value;
+            document.getElementById('pb-loading').classList.remove('hidden');
+            document.getElementById('pb-kosong').classList.add('hidden');
+            document.getElementById('pb-content').classList.add('hidden');
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=progres_bulanan&bulan=${bulan}`)
+                .then(result => {
+                    document.getElementById('pb-loading').classList.add('hidden');
+                    if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
+                    if (!result.sales || result.sales.length === 0) { document.getElementById('pb-kosong').classList.remove('hidden'); return; }
+
+                    dataProgresBulanan = result.sales;
+                    document.getElementById('pb-periode').innerText =
+                        `Periode ${result.awal} s/d ${result.akhir}${result.bulan_berjalan ? ' (bulan berjalan, sampai hari ini)' : ''} • target ${result.hari_kerja_per_bulan} hari kerja • piutang dihitung per hari ini`;
+                    renderTabelPerbandingan(result.sales);
+                    document.getElementById('pb-cards').innerHTML = result.sales.map((s, i) => renderKartuSalesBulanan(s, i)).join('');
+                    document.getElementById('pb-content').classList.remove('hidden');
+                })
+                .catch(err => { document.getElementById('pb-loading').classList.add('hidden'); alert('Koneksi error: ' + err.message); });
+        }
+
+        function renderTabelPerbandingan(list) {
+            document.getElementById('pb-tabel-body').innerHTML = list.map(s => {
+                const adaSetoran = s.setoran.hari_tercatat > 0;
+                return `<tr class="border-b border-slate-100">
+                    <td class="p-2 font-semibold text-slate-800">${escOwner(s.nama)}</td>
+                    <td class="p-2 text-center">${s.kunjungan_total} <span class="text-slate-400">/ ${s.target_kunjungan} (${s.persen_kunjungan}%)</span></td>
+                    <td class="p-2 text-center">${s.konversi_persen}%</td>
+                    <td class="p-2 text-right font-semibold">${rupiah(s.omzet_closing)}</td>
+                    <td class="p-2 text-right">${rupiah(s.penagihan_cash + s.penagihan_transfer)}</td>
+                    <td class="p-2 text-center">${s.pelanggan_baru_trial}</td>
+                    <td class="p-2 text-right font-semibold ${adaSetoran ? warnaSelisihRp(s.setoran.total_selisih) : 'text-slate-400'}">${adaSetoran ? teksSelisihRp(s.setoran.total_selisih) : '—'}</td>
+                    <td class="p-2 text-right ${s.piutang.lewat_jatuh_tempo > 0 ? 'text-red-600 font-semibold' : ''}">${rupiah(s.piutang.total)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderKartuSalesBulanan(s, i) {
+            const adaSetoran = s.setoran.hari_tercatat > 0;
+            const kartu = (label, nilai, sub, bg, fg, nilaiCls) => `
+                <div class="${bg} rounded-xl p-3">
+                    <div class="text-[10px] ${fg} uppercase font-semibold">${label}</div>
+                    <div class="text-base font-extrabold ${nilaiCls || fg.replace('700', '800')}">${nilai}</div>
+                    <div class="text-[10px] ${fg} opacity-80 mt-0.5">${sub}</div>
+                </div>`;
+            const baris = (label, nilai, cls) => `<div class="flex justify-between gap-2 py-0.5"><span class="text-slate-500">${label}</span><span class="font-semibold text-right ${cls || ''}">${nilai}</span></div>`;
+            const p = s.piutang, st = s.stok, se = s.setoran;
+
+            const detailKinerja = `
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase text-slate-700 mb-1 pb-1 border-b border-slate-200">Kinerja</h4>
+                    ${baris('Hari aktif', s.hari_aktif)}
+                    ${baris('Rata-rata kunjungan / hari', `${s.rata_kunjungan_per_hari} <span class="text-slate-400 font-normal">(target ${s.target_harian})</span>`)}
+                    ${baris('Proyeksi kunjungan akhir bulan', s.proyeksi_kunjungan === null || s.proyeksi_kunjungan === undefined ? '—' : s.proyeksi_kunjungan)}
+                    ${baris('Jumlah order', s.jumlah_order)}
+                    ${baris('Rata-rata nilai order', rupiah(s.rata_nilai_order))}
+                    ${baris('Outlet order ulang (Repeat)', s.repeat_outlet)}
+                    ${baris('Estimasi bonus', `${rupiah(s.bonus_estimasi)} <span class="text-slate-400 font-normal">(Trial ${s.pelanggan_baru_trial}, Repeat ${s.repeat_outlet})</span>`)}
+                    <div class="mt-2 pt-2 border-t border-slate-200">
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">Item terjual (sudah terkirim)</div>
+                        ${s.item_terjual.length === 0 ? '<p class="text-slate-400">Belum ada.</p>' : s.item_terjual.map(it => baris(escOwner(it.item), angkaRapi(it.qty))).join('')}
+                        ${baris('<b>Total</b>', `<b>${angkaRapi(s.total_item_terjual)}</b>`)}
+                    </div>
+                </div>`;
+
+            const detailRisiko = `
+                <div>
+                    <h4 class="text-[11px] font-bold uppercase text-slate-700 mb-1 pb-1 border-b border-slate-200">Kontrol Risiko</h4>
+                    ${baris('Piutang belum lunas', `${rupiah(p.total)} <span class="text-slate-400 font-normal">(${p.jumlah_outlet} outlet)</span>`)}
+                    ${baris('&nbsp;&nbsp;umur 0–7 hari', rupiah(p.aging.d0_7))}
+                    ${baris('&nbsp;&nbsp;umur 8–14 hari', rupiah(p.aging.d8_14))}
+                    ${baris('&nbsp;&nbsp;umur lebih dari 14 hari', rupiah(p.aging.d15_plus), p.aging.d15_plus > 0 ? 'text-red-600' : '')}
+                    ${baris('Lewat jatuh tempo', rupiah(p.lewat_jatuh_tempo), p.lewat_jatuh_tempo > 0 ? 'text-red-600' : '')}
+                    ${baris('Kredit dibuat bulan ini', rupiah(s.kredit_bulan_ini))}
+                    ${baris('&nbsp;&nbsp;sudah tertagih', s.rasio_tertagih_persen === null ? '—' : `${rupiah(s.tertagih_bulan_ini)} (${s.rasio_tertagih_persen}%)`)}
+                    ${baris('GPS mencurigakan', s.gps_bermasalah, s.gps_bermasalah > 0 ? 'text-red-600' : '')}
+                    ${baris('Nilai diskon diberikan', rupiah(s.diskon_diberikan))}
+                    ${baris('Biaya BBM/parkir/retribusi', `${rupiah(s.biaya_ops)} <span class="text-slate-400 font-normal">(${rupiah(s.biaya_ops_per_kunjungan)} / kunjungan)</span>`)}
+                    <div class="mt-2 pt-2 border-t border-slate-200">
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">Selisih stok (dibawa − terjual − sisa sore)</div>
+                        ${baris('Kejadian selisih', st.kejadian_selisih, st.kejadian_selisih > 0 ? 'text-red-600' : '')}
+                        ${baris('Unit hilang / tidak tercatat', angkaRapi(st.total_unit_hilang), st.total_unit_hilang > 0 ? 'text-red-600' : '')}
+                        ${baris('Unit lebih', angkaRapi(st.total_unit_lebih), st.total_unit_lebih > 0 ? 'text-amber-600' : '')}
+                        ${baris('Hari Stok Sore belum diisi', st.hari_sore_kosong, st.hari_sore_kosong > 0 ? 'text-amber-600' : '')}
+                        ${st.top.map(t => `<div class="text-[10px] text-slate-500">• ${escOwner(t.tanggal)} ${escOwner(t.produk)}: ${t.selisih > 0 ? 'kurang' : 'lebih'} ${angkaRapi(Math.abs(t.selisih))}</div>`).join('')}
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-200">
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">Setoran (dari catatan rekonsiliasi)</div>
+                        ${baris('Hari tercatat', se.hari_tercatat)}
+                        ${baris('Seharusnya / disetor', `${rupiah(se.total_seharusnya)} / ${rupiah(se.total_disetor)}`)}
+                        ${baris('Total selisih', adaSetoran ? teksSelisihRp(se.total_selisih) : '—', adaSetoran ? warnaSelisihRp(se.total_selisih) : '')}
+                        ${baris('Hari sesuai / kurang / lebih', `${se.hari_sesuai} / ${se.hari_kurang} / ${se.hari_lebih}`)}
+                    </div>
+                </div>`;
+
+            return `
+                <div class="card p-4">
+                    <div class="flex justify-between items-baseline mb-3">
+                        <span class="font-bold text-slate-900 text-base">${escOwner(s.nama)}</span>
+                        <span class="text-[10px] text-slate-400">${s.hari_aktif} hari aktif</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-xs text-slate-600">Kunjungan</span>
+                            <span class="text-xs font-bold text-slate-800">${s.kunjungan_total} / ${s.target_kunjungan} (${s.persen_kunjungan}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5"><div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${Math.min(s.persen_kunjungan, 100)}%"></div></div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Rata-rata ${s.rata_kunjungan_per_hari} / hari</span>
+                            <span>${s.proyeksi_kunjungan === null || s.proyeksi_kunjungan === undefined ? '' : 'Proyeksi akhir bulan ' + s.proyeksi_kunjungan}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        ${kartu('Konversi', `${s.konversi_persen}%`, `${s.jumlah_outlet_order_hari} order dari ${s.kunjungan_total} kunjungan`, 'bg-sky-50', 'text-sky-700')}
+                        ${kartu('Omzet', rupiah(s.omzet_closing), s.omzet_menunggu_kirim > 0 ? `termasuk ${rupiah(s.omzet_menunggu_kirim)} menunggu kirim` : `${s.jumlah_order} order`, 'bg-emerald-50', 'text-emerald-700')}
+                        ${kartu('Penagihan Kredit', rupiah(s.penagihan_cash + s.penagihan_transfer), `Cash ${rupiah(s.penagihan_cash)} • Transfer ${rupiah(s.penagihan_transfer)}`, 'bg-indigo-50', 'text-indigo-700')}
+                        ${kartu('Pelanggan Baru (Trial)', s.pelanggan_baru_trial, `Repeat ${s.repeat_outlet} outlet`, 'bg-amber-50', 'text-amber-700')}
+                        ${kartu('Selisih Setoran', adaSetoran ? teksSelisihRp(se.total_selisih) : '—', adaSetoran ? `${se.hari_tercatat} hari tercatat • ${se.hari_kurang} kurang` : 'belum ada catatan', 'bg-slate-100', 'text-slate-600', adaSetoran ? warnaSelisihRp(se.total_selisih) : 'text-slate-500')}
+                        ${kartu('Piutang Belum Lunas', rupiah(p.total), p.lewat_jatuh_tempo > 0 ? `${rupiah(p.lewat_jatuh_tempo)} lewat jatuh tempo` : 'tidak ada yang lewat tempo', 'bg-rose-50', 'text-rose-700', p.lewat_jatuh_tempo > 0 ? 'text-red-600' : undefined)}
+                    </div>
+
+                    <button id="pb-toggle-${i}" onclick="toggleDetailSales(${i})" class="mt-3 text-[11px] text-indigo-600 font-semibold">Lihat detail ▾</button>
+                    <div id="pb-detail-${i}" class="hidden mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+                        ${detailKinerja}
+                        ${detailRisiko}
+                    </div>
+                </div>`;
+        }
+
+        function toggleDetailSales(i) {
+            const el = document.getElementById('pb-detail-' + i);
+            const tersembunyi = el.classList.toggle('hidden');
+            document.getElementById('pb-toggle-' + i).innerText = tersembunyi ? 'Lihat detail ▾' : 'Tutup detail ▴';
+        }
+
         function initLaporanTab() {
             document.getElementById('laporan_tanggal').value = tglLokal(new Date());
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=list_sales`)
@@ -1475,6 +1703,15 @@
                         select.innerHTML = '<option value="">Belum ada data sales</option>';
                     }
                 });
+        }
+
+        function escOwner(s) {
+            return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function badgeMetodeOwner(m) {
+            if (m === 'Cash') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>';
+            if (m === 'Kredit') return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
+            return `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">${escOwner(m)}</span>`;
         }
 
         function loadLaporanPenutupan() {
@@ -1491,95 +1728,103 @@
                     document.getElementById('laporan-loading').classList.add('hidden');
                     if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
 
-                    // Kosong HANYA kalau tidak ada closing, tidak ada pembayaran kredit, dan tidak ada pengeluaran.
-                    // (Sales bisa saja hari itu cuma menagih kredit, tanpa order baru.)
-                    const adaPembayaran = result.pembayaran_kredit && result.pembayaran_kredit.length > 0;
-                    const adaPengeluaran = result.pengeluaran && result.pengeluaran.length > 0;
-                    if (result.closings.length === 0 && !adaPembayaran && !adaPengeluaran) {
+                    const kas = result.kas;
+                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0;
+                    // Kosong HANYA kalau tidak ada closing, pengantaran, penagihan, maupun pengeluaran
+                    if (result.closings.length === 0 && !adaKas) {
                         document.getElementById('laporan-kosong').classList.remove('hidden');
                         return;
                     }
 
-                    document.getElementById('lap-total-penjualan').innerText = rupiah(result.total_penjualan);
-                    document.getElementById('lap-total-item').innerText = result.total_item_terjual;
-                    document.getElementById('lap-total-cash').innerText = rupiah(result.total_cash);
-                    document.getElementById('lap-total-kredit').innerText = rupiah(result.total_kredit);
-                    document.getElementById('lap-total-penagihan').innerText = rupiah(result.total_penagihan_kredit);
-                    document.getElementById('lap-total-pengeluaran').innerText = rupiah(result.total_pengeluaran);
+                    // ---- Harus Disetor ----
                     document.getElementById('lap-total-setoran').innerText = rupiah(result.total_setoran);
+                    document.getElementById('lap-cash-order').innerText = rupiah(kas.cash_order);
+                    document.getElementById('lap-tagih-cash').innerText = rupiah(kas.penagihan_cash);
+                    document.getElementById('lap-keluar').innerText = rupiah(kas.total_pengeluaran);
 
-                    if (result.pembayaran_kredit && result.pembayaran_kredit.length > 0) {
-                        document.getElementById('lap-pembayaran-list').innerHTML = result.pembayaran_kredit.map(p => {
-                            const badge = p.metode_bayar === 'Cash'
-                                ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
-                                : `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">${p.metode_bayar}</span>`;
-                            const lebih = p.kelebihan > 0 ? `<div class="text-[10px] text-amber-600">Kelebihan bayar ${rupiah(p.kelebihan)}</div>` : '';
-                            return `
-                                <div class="bg-sky-50 rounded-lg p-2 text-xs">
-                                    <div class="flex justify-between items-center gap-2">
-                                        <span class="min-w-0"><span class="text-slate-400">${p.waktu || ''}</span> — <span class="font-medium text-slate-800">${p.outlet_name}</span></span>
-                                        <span class="flex items-center gap-2 shrink-0">${badge}<span class="font-semibold">${rupiah(p.jumlah)}</span></span>
-                                    </div>
-                                    ${lebih}
-                                </div>
-                            `;
+                    // ---- Bagian 1: Kas ----
+                    const pengWrap = document.getElementById('lap-pengantaran-wrapper');
+                    if (kas.pengantaran.length > 0) {
+                        document.getElementById('lap-pengantaran-list').innerHTML = kas.pengantaran.map(p => {
+                            const beda = p.tanggal_order !== result.tanggal || p.sales_closing !== salesRep;
+                            return `<div class="flex justify-between items-start text-xs bg-slate-50 rounded-lg p-2 gap-2">
+                                <span class="min-w-0"><span class="font-medium text-slate-800">${escOwner(p.outlet_name)}</span><br>
+                                    <span class="text-[10px] text-slate-400">${p.items.map(it => `${escOwner(it.item)} ${it.qty}`).join(', ')}${beda ? ` • order diambil ${escOwner(p.tanggal_order)} oleh ${escOwner(p.sales_closing)}` : ''}</span></span>
+                                <span class="flex items-center gap-2 shrink-0">${badgeMetodeOwner(p.metode_bayar)}<span class="font-semibold">${rupiah(p.total)}</span></span>
+                            </div>`;
                         }).join('');
+                        pengWrap.classList.remove('hidden');
+                    } else { pengWrap.classList.add('hidden'); }
+
+                    const bayarWrap = document.getElementById('lap-pembayaran-wrapper');
+                    if (kas.penagihan.length > 0) {
+                        document.getElementById('lap-pembayaran-list').innerHTML = kas.penagihan.map(p => `
+                            <div class="bg-sky-50 rounded-lg p-2 text-xs">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="min-w-0"><span class="text-slate-400">${escOwner(p.waktu)}</span> — <span class="font-medium text-slate-800">${escOwner(p.outlet_name)}</span></span>
+                                    <span class="flex items-center gap-2 shrink-0">${badgeMetodeOwner(p.metode_bayar)}<span class="font-semibold">${rupiah(p.jumlah)}</span></span>
+                                </div>
+                                ${p.kelebihan > 0 ? `<div class="text-[10px] text-amber-600">Kelebihan bayar ${rupiah(p.kelebihan)}</div>` : ''}
+                            </div>`).join('');
                         document.getElementById('lap-pembayaran-ringkas').innerText =
-                            `${result.pembayaran_kredit.length} pembayaran • Cash ${rupiah(result.total_penagihan_kredit)} • Transfer ${rupiah(result.total_penagihan_transfer || 0)}`;
-                        document.getElementById('lap-pembayaran-wrapper').classList.remove('hidden');
-                    } else {
-                        document.getElementById('lap-pembayaran-wrapper').classList.add('hidden');
-                    }
+                            `${kas.penagihan.length} pembayaran • Cash ${rupiah(kas.penagihan_cash)} • Transfer ${rupiah(kas.penagihan_transfer)}`;
+                        bayarWrap.classList.remove('hidden');
+                    } else { bayarWrap.classList.add('hidden'); }
 
-                    if (result.pengeluaran && result.pengeluaran.length > 0) {
-                        document.getElementById('lap-pengeluaran-list').innerHTML = result.pengeluaran.map(p => `
-                            <div class="flex justify-between text-xs bg-orange-50 rounded-lg p-2">
-                                <span>${p.waktu || ''} — ${p.kategori}${p.keterangan ? ' (' + p.keterangan + ')' : ''}</span>
-                                <span class="font-semibold">${rupiah(p.jumlah)}</span>
-                            </div>
-                        `).join('');
-                        document.getElementById('lap-pengeluaran-wrapper').classList.remove('hidden');
-                    } else {
-                        document.getElementById('lap-pengeluaran-wrapper').classList.add('hidden');
-                    }
+                    const keluarWrap = document.getElementById('lap-pengeluaran-wrapper');
+                    if (kas.pengeluaran.length > 0) {
+                        document.getElementById('lap-pengeluaran-list').innerHTML = kas.pengeluaran.map(x => `
+                            <div class="flex justify-between text-xs bg-orange-50 rounded-lg p-2 gap-2">
+                                <span class="min-w-0"><span class="text-slate-400">${escOwner(x.waktu)}</span> — ${escOwner(x.kategori)}${x.keterangan ? ' (' + escOwner(x.keterangan) + ')' : ''}</span>
+                                <span class="font-semibold shrink-0">${rupiah(x.jumlah)}</span>
+                            </div>`).join('');
+                        keluarWrap.classList.remove('hidden');
+                    } else { keluarWrap.classList.add('hidden'); }
+                    document.getElementById('lap-kas-kosong').classList.toggle('hidden', adaKas);
 
-                    document.getElementById('lap-closings-list').innerHTML = result.closings.map(c => {
-                        const metodeBadge = c.metode_bayar === 'Cash'
-                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
-                            : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit — ${c.status_pembayaran}</span>`;
-                        return `
-                            <div class="border border-slate-200 rounded-xl p-3">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-bold text-slate-800 text-sm">${c.outlet_name}</span>
-                                    ${metodeBadge}
-                                </div>
-                                <table class="w-full text-xs mb-2">
-                                    ${c.items.map(it => `
-                                        <tr class="border-b border-slate-100">
-                                            <td class="py-1">${it.item}</td>
-                                            <td class="py-1 text-center text-slate-500">${it.qty} x ${rupiah(it.price)}</td>
-                                            <td class="py-1 text-right font-semibold">${rupiah(it.total)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </table>
-                                <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2">
-                                    <span>Total</span><span>${rupiah(c.grand_total)}</span>
-                                </div>
-                                ${c.metode_bayar === 'Kredit' ? `<div class="text-[10px] text-amber-600 mt-1">Jatuh tempo: ${c.jatuh_tempo || '-'}</div>` : ''}
-                            </div>
-                        `;
-                    }).join('');
+                    // ---- Bagian 2: Closing ----
+                    document.getElementById('lap-total-closing').innerText = rupiah(result.total_closing);
+                    document.getElementById('lap-closing-terkirim').innerText = rupiah(result.total_closing_terkirim);
+                    document.getElementById('lap-menunggu-kirim').innerText = rupiah(result.total_menunggu_kirim);
+                    document.getElementById('lap-closings-list').innerHTML = result.closings.length === 0
+                        ? '<p class="text-xs text-slate-400 text-center py-2">Tidak ada closing pada tanggal ini.</p>'
+                        : result.closings.map(c => {
+                            const menunggu = c.status_pengiriman === 'Menunggu Kirim';
+                            const diantarLain = !menunggu && c.petugas_antar && (c.petugas_antar !== salesRep || c.tanggal_kirim !== result.tanggal);
+                            return `
+                                <div class="border border-slate-200 rounded-xl p-3">
+                                    <div class="flex justify-between items-center mb-2 gap-2">
+                                        <span class="font-bold text-slate-800 text-sm min-w-0">${escOwner(c.outlet_name)}</span>
+                                        <span class="flex items-center gap-1 shrink-0">${badgeMetodeOwner(c.metode_bayar)}${menunggu ? '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">Menunggu Kirim</span>' : ''}</span>
+                                    </div>
+                                    <table class="w-full text-xs mb-2">
+                                        ${c.items.map(it => `
+                                            <tr class="border-b border-slate-100">
+                                                <td class="py-1">${escOwner(it.item)}</td>
+                                                <td class="py-1 text-center text-slate-500">${it.qty} x ${rupiah(it.price)}</td>
+                                                <td class="py-1 text-right font-semibold">${rupiah(it.total)}</td>
+                                            </tr>`).join('')}
+                                    </table>
+                                    <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2"><span>Total</span><span>${rupiah(c.grand_total)}</span></div>
+                                    ${c.metode_bayar === 'Kredit' && c.jatuh_tempo ? `<div class="text-[10px] text-amber-600 mt-1">Jatuh tempo: ${escOwner(c.jatuh_tempo)}</div>` : ''}
+                                    ${diantarLain ? `<div class="text-[10px] text-slate-500 mt-1">Diantar oleh ${escOwner(c.petugas_antar)} pada ${escOwner(c.tanggal_kirim)}</div>` : ''}
+                                </div>`;
+                        }).join('');
 
-                    document.getElementById('lap-item-summary-body').innerHTML = result.item_summary.map(it => `
-                        <tr class="border-b border-slate-100">
-                            <td class="p-2">${it.item}</td>
-                            <td class="p-2 text-center">${it.qty}</td>
-                            <td class="p-2 text-center font-semibold">${rupiah(it.omzet)}</td>
-                        </tr>
-                    `).join('');
+                    // ---- Total per produk ----
+                    document.getElementById('lap-item-summary-body').innerHTML = result.item_summary.length === 0
+                        ? '<tr><td colspan="3" class="p-2 text-center text-slate-400">Belum ada closing terkirim.</td></tr>'
+                        : result.item_summary.map(it => `
+                            <tr class="border-b border-slate-100">
+                                <td class="p-2">${escOwner(it.item)}</td>
+                                <td class="p-2 text-center">${it.qty}</td>
+                                <td class="p-2 text-center font-semibold">${rupiah(it.omzet)}</td>
+                            </tr>`).join('');
+                    document.getElementById('lap-total-item').innerText = result.total_item_terjual;
 
                     document.getElementById('laporan-content').classList.remove('hidden');
-                });
+                })
+                .catch(err => { document.getElementById('laporan-loading').classList.add('hidden'); alert('Koneksi error: ' + err.message); });
         }
 
         function loadStokTabel() {
@@ -1780,7 +2025,7 @@
                 .then(res => res.json())
                 .then(result => {
                     btn.disabled = false; btn.innerText = 'Simpan Catatan Rekonsiliasi';
-                    if (result.status === 'success') alert(`Rekonsiliasi tersimpan. Status: ${result.status_setoran}`);
+                    if (result.status === 'success') alert(`Rekonsiliasi ${result.diperbarui ? 'diperbarui (menimpa catatan sebelumnya untuk tanggal & sales ini)' : 'tersimpan'}. Status: ${result.status_setoran}`);
                     else alert('Error: ' + result.message);
                 })
                 .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Catatan Rekonsiliasi'; alert('Koneksi error: ' + err.message); });
