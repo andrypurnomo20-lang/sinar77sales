@@ -804,6 +804,27 @@
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
 
+        // Kirim POST dengan batas waktu + coba ulang otomatis kalau sinyal jelek (bukan gagal beneran).
+        // AMAN dipakai berkali-kali untuk payload yang SAMA karena backend mengecek ID (outlet_id /
+        // client_order_id) dan menolak simpan dobel kalau ID itu sudah pernah tersimpan — jadi retry di sini
+        // tidak akan bikin data ganda, walau requestnya kebetulan sempat sampai duluan sebelum sinyal putus.
+        function postDenganRetry(payload, percobaanTersisa) {
+            if (percobaanTersisa === undefined) percobaanTersisa = 2;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            return fetch(APPS_SCRIPT_URL, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload), signal: controller.signal
+            })
+                .then(res => { clearTimeout(timeoutId); return res.json(); })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    if (percobaanTersisa > 0) return postDenganRetry(payload, percobaanTersisa - 1);
+                    throw err;
+                });
+        }
+
         let allOutlets = [];
 
         // Muat daftar outlet dari awal begitu halaman dibuka (di menu utama), di background —
@@ -1107,8 +1128,7 @@
             const txt = document.getElementById('outlet-submit-text');
             btn.disabled = true; txt.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newOutlet) })
-                .then(res => res.json())
+            postDenganRetry(newOutlet)
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan & Masuk Spreadsheet';
                     if (result.status === 'success') {
@@ -1628,6 +1648,14 @@
 
         // ============ KERANJANG ORDER (MULTI-ITEM) ============
         let cart = [];
+        // ID order dibuat SEKALI di HP dan dipakai ulang selama order ini belum benar-benar tersimpan
+        // (termasuk saat retry otomatis karena sinyal putus) — supaya backend bisa mengenali "ini order
+        // yang sama" dan tidak menyimpannya dobel. Baru dikosongkan lagi setelah order sukses tersimpan.
+        let clientOrderId = null;
+        function ambilClientOrderId() {
+            if (!clientOrderId) clientOrderId = 'ORD' + Date.now() + Math.floor(10 + Math.random() * 90);
+            return clientOrderId;
+        }
 
         function tambahKeKeranjang() {
             const sel = document.getElementById('item');
@@ -1964,6 +1992,7 @@
             const grandTotal = cart.reduce((sum, c) => sum + c.total, 0);
             const newOrder = {
                 form_type: 'order',
+                client_order_id: ambilClientOrderId(),
                 outlet_id: outletId, outlet_name: outletName,
                 sales_rep: salesRep,
                 items: cart,
@@ -1977,11 +2006,11 @@
             const txt = document.getElementById('order-submit-text');
             btn.disabled = true; txt.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newOrder) })
-                .then(res => res.json())
+            postDenganRetry(newOrder)
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan Order';
                     if (result.status === 'success') {
+                        clientOrderId = null; // order ini sudah pasti tersimpan — order BERIKUTNYA butuh ID baru
                         simpanSalesRep(salesRep);
                         if (result.status_pengiriman === 'Menunggu Kirim') {
                             showModal('Tersimpan', `Order tercatat sebagai MENUNGGU KIRIM. Stok & pembayaran belum final — nanti selesaikan lewat menu "Konfirmasi Pengiriman" saat barang benar-benar diantar.`);
