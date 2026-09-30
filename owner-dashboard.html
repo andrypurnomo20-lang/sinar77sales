@@ -7,11 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #pel-print-header { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            #pel-print-header { display: block !important; }
+        }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-10">
 
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-20">
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-20 no-print">
         <div class="max-w-6xl mx-auto px-4 py-3.5 flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-2.5">
                 <div class="bg-emerald-500 w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-sm">S</div>
@@ -332,7 +339,11 @@
         <!-- ============ /TAB: PROGRES SALES HARI INI ============ -->
 
         <div id="tab-pelanggan" class="tab-panel hidden">
-            <div class="card p-4 mb-4">
+            <div id="pel-print-header" class="mb-4">
+                <h2 class="text-base font-bold text-slate-900">Direktori Pelanggan — Sinar77</h2>
+                <p id="pel-print-ringkasan" class="text-xs text-slate-600"></p>
+            </div>
+            <div class="card p-4 mb-4 no-print">
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
                     <select id="pel_filter_sales" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="">Semua Sales</option>
@@ -345,6 +356,7 @@
                         <option value="Active">Aktif</option>
                         <option value="Trial">Baru Bulan Ini (Trial)</option>
                         <option value="Follow-up">Follow-up</option>
+                        <option value="JatuhTempo">Piutang Jatuh Tempo</option>
                     </select>
                     <select id="pel_filter_sort" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="omzet">Urutkan: Omzet Terbesar</option>
@@ -353,7 +365,10 @@
                     </select>
                     <input type="text" id="pel_cari" oninput="renderDirektoriPelanggan()" placeholder="Cari nama outlet..." class="px-3 py-2 border border-slate-300 rounded-xl text-xs">
                 </div>
-                <p id="pel-ringkasan" class="text-[10px] text-slate-400"></p>
+                <div class="flex justify-between items-center gap-2">
+                    <p id="pel-ringkasan" class="text-[10px] text-slate-400"></p>
+                    <button onclick="window.print()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold px-3 py-1.5 rounded-lg shrink-0">🖨️ Cetak Daftar Ini</button>
+                </div>
             </div>
 
             <div id="pel-loading" class="text-center py-16 text-slate-400 text-sm">Memuat direktori pelanggan...</div>
@@ -1382,21 +1397,26 @@
                 if (salesF && p.sales_rep !== salesF) return false;
                 if (tipeF && p.tipe !== tipeF) return false;
                 if (statusF === 'Trial' && !p.trial_bulan_ini) return false;
-                if (statusF && statusF !== 'Trial' && p.status !== statusF) return false;
+                if (statusF === 'JatuhTempo' && !p.jatuh_tempo) return false;
+                if (statusF && statusF !== 'Trial' && statusF !== 'JatuhTempo' && p.status !== statusF) return false;
                 if (cari && !p.name.toLowerCase().includes(cari)) return false;
                 return true;
             });
 
-            if (sortF === 'omzet') list.sort((a, b) => b.total_omzet - a.total_omzet);
+            if (statusF === 'JatuhTempo') list.sort((a, b) => a.jatuh_tempo.localeCompare(b.jatuh_tempo)); // paling lama telat duluan
+            else if (sortF === 'omzet') list.sort((a, b) => b.total_omzet - a.total_omzet);
             else if (sortF === 'last_order') list.sort((a, b) => (a.last_order || '').localeCompare(b.last_order || ''));
             else list.sort((a, b) => a.name.localeCompare(b.name));
 
-            document.getElementById('pel-ringkasan').innerText = `Menampilkan ${list.length} dari ${dataDirektoriPelanggan.length} pelanggan`;
+            const ringkas = `Menampilkan ${list.length} dari ${dataDirektoriPelanggan.length} pelanggan`;
+            document.getElementById('pel-ringkasan').innerText = ringkas;
+            document.getElementById('pel-print-ringkasan').innerText = `${ringkas} — dicetak ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('pel-kosong').classList.toggle('hidden', list.length > 0);
             document.getElementById('pel-list').innerHTML = list.map(p => renderKartuPelanggan(p)).join('');
         }
 
         function badgeStatusPelanggan(p) {
+            if (p.jatuh_tempo) return '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Jatuh Tempo</span>';
             if (p.trial_bulan_ini) return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Baru Bulan Ini</span>';
             if (p.status === 'Active') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Aktif</span>';
             return `<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">${escOwner(p.status || '-')}</span>`;
@@ -1436,7 +1456,7 @@
                             <div class="text-xs font-bold text-slate-800">${rupiah(p.total_omzet)}</div>
                         </div>
                     </div>
-                    ${p.piutang > 0 ? `<div class="text-[11px] text-red-600 font-semibold mb-2">Piutang belum lunas: ${rupiah(p.piutang)}</div>` : ''}
+                    ${p.piutang > 0 ? `<div class="text-[11px] text-red-600 font-semibold mb-2">Piutang belum lunas: ${rupiah(p.piutang)}${p.jatuh_tempo ? ` • Jatuh tempo sejak ${escOwner(p.jatuh_tempo)}` : ''}</div>` : ''}
                     <div class="flex gap-2">${telpBtn}${waBtn}${mapsBtn}</div>
                 </div>`;
         }
@@ -1702,6 +1722,7 @@
         // ============ PROGRES SALES: BULANAN ============
         let progresBulananSudahDimuat = false;
         let dataProgresBulanan = [];
+        let bulanProgresSaatIni = '';
 
         function setProgresMode(mode) {
             const bulanan = mode === 'bulanan';
@@ -1740,6 +1761,7 @@
 
         function loadProgresBulanan() {
             const bulan = document.getElementById('progres_bulan').value;
+            bulanProgresSaatIni = bulan;
             document.getElementById('pb-loading').classList.remove('hidden');
             document.getElementById('pb-kosong').classList.add('hidden');
             document.getElementById('pb-content').classList.add('hidden');
@@ -1814,7 +1836,9 @@
                     ${baris('Lewat jatuh tempo', rupiah(p.lewat_jatuh_tempo), p.lewat_jatuh_tempo > 0 ? 'text-red-600' : '')}
                     ${baris('Kredit dibuat bulan ini', rupiah(s.kredit_bulan_ini))}
                     ${baris('&nbsp;&nbsp;sudah tertagih', s.rasio_tertagih_persen === null ? '—' : `${rupiah(s.tertagih_bulan_ini)} (${s.rasio_tertagih_persen}%)`)}
-                    ${baris('GPS mencurigakan', s.gps_bermasalah, s.gps_bermasalah > 0 ? 'text-red-600' : '')}
+                    ${baris('GPS mencurigakan', s.gps_bermasalah > 0
+                        ? `<button onclick="bukaGpsBermasalah('${escOwner(s.nama)}','${bulanProgresSaatIni}')" class="underline decoration-dotted">${s.gps_bermasalah} — lihat</button>`
+                        : s.gps_bermasalah, s.gps_bermasalah > 0 ? 'text-red-600' : '')}
                     ${baris('Nilai diskon diberikan', rupiah(s.diskon_diberikan))}
                     ${baris('Biaya BBM/parkir/retribusi', `${rupiah(s.biaya_ops)} <span class="text-slate-400 font-normal">(${rupiah(s.biaya_ops_per_kunjungan)} / kunjungan)</span>`)}
                     <div class="mt-2 pt-2 border-t border-slate-200">
@@ -2415,6 +2439,58 @@
                 options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
             });
         }
+        // ============ MODAL: DAFTAR GPS MENCURIGAKAN ============
+        function bukaGpsBermasalah(salesRep, bulan) {
+            document.getElementById('gps-modal-nama').innerText = `${salesRep} — ${bulan}`;
+            document.getElementById('gps-modal-loading').classList.remove('hidden');
+            document.getElementById('gps-modal-kosong').classList.add('hidden');
+            document.getElementById('gps-modal-list').innerHTML = '';
+            document.getElementById('gps-modal').classList.remove('hidden');
+
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=gps_bermasalah&sales_rep=${encodeURIComponent(salesRep)}&bulan=${bulan}`)
+                .then(result => {
+                    document.getElementById('gps-modal-loading').classList.add('hidden');
+                    if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
+                    if (result.daftar.length === 0) { document.getElementById('gps-modal-kosong').classList.remove('hidden'); return; }
+
+                    document.getElementById('gps-modal-list').innerHTML = result.daftar.map(g => {
+                        const warna = g.status_verifikasi === 'Lokasi jauh dari outlet' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
+                        const mapsBtn = g.gps_link ? `<a href="${g.gps_link}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg shrink-0">📍 Lihat Lokasi</a>` : '';
+                        return `
+                            <div class="border border-slate-200 rounded-xl p-3 flex justify-between items-center gap-3">
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-slate-800 text-sm">${escOwner(g.outlet_name)}</div>
+                                    <div class="text-[11px] text-slate-500">${escOwner(g.tanggal)} • ${escOwner(g.status_kunjungan)} • ${g.jarak}m dari titik outlet</div>
+                                    <span class="inline-block mt-1 ${warna} text-[10px] font-semibold px-2 py-0.5 rounded-full">${escOwner(g.status_verifikasi)}</span>
+                                </div>
+                                ${mapsBtn}
+                            </div>`;
+                    }).join('');
+                })
+                .catch(err => { document.getElementById('gps-modal-loading').classList.add('hidden'); alert('Koneksi error: ' + err.message); });
+        }
+
+        function tutupGpsBermasalah() {
+            document.getElementById('gps-modal').classList.add('hidden');
+        }
     </script>
+
+    <!-- Modal: Daftar GPS Mencurigakan -->
+    <div id="gps-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-slate-200">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">GPS Mencurigakan</h3>
+                    <p id="gps-modal-nama" class="text-[11px] text-slate-500"></p>
+                </div>
+                <button onclick="tutupGpsBermasalah()" class="text-slate-400 hover:text-slate-600 text-xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-2">
+                <div id="gps-modal-loading" class="text-center py-8 text-slate-400 text-sm">Memuat...</div>
+                <div id="gps-modal-kosong" class="hidden text-center py-8 text-slate-400 text-sm">Tidak ada kunjungan/order dengan GPS mencurigakan bulan ini.</div>
+                <div id="gps-modal-list" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
