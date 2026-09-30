@@ -333,9 +333,12 @@
 
         <div id="tab-pelanggan" class="tab-panel hidden">
             <div class="card p-4 mb-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
                     <select id="pel_filter_sales" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="">Semua Sales</option>
+                    </select>
+                    <select id="pel_filter_tipe" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="">Semua Jenis</option>
                     </select>
                     <select id="pel_filter_status" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="">Semua Status</option>
@@ -1358,6 +1361,11 @@
                         const namaSales = [...new Set(result.pelanggan.map(p => p.sales_rep).filter(Boolean))].sort();
                         select.innerHTML = '<option value="">Semua Sales</option>' + namaSales.map(n => `<option value="${escOwner(n)}">${escOwner(n)}</option>`).join('');
                     }
+                    const selectTipe = document.getElementById('pel_filter_tipe');
+                    if (selectTipe.options.length <= 1) {
+                        const semuaTipe = [...new Set(result.pelanggan.map(p => p.tipe).filter(Boolean))].sort();
+                        selectTipe.innerHTML = '<option value="">Semua Jenis</option>' + semuaTipe.map(t => `<option value="${escOwner(t)}">${escOwner(t)}</option>`).join('');
+                    }
                     renderDirektoriPelanggan();
                 })
                 .catch(err => { document.getElementById('pel-loading').classList.add('hidden'); alert('Koneksi error: ' + err.message); });
@@ -1365,12 +1373,14 @@
 
         function renderDirektoriPelanggan() {
             const salesF = document.getElementById('pel_filter_sales').value;
+            const tipeF = document.getElementById('pel_filter_tipe').value;
             const statusF = document.getElementById('pel_filter_status').value;
             const sortF = document.getElementById('pel_filter_sort').value;
             const cari = document.getElementById('pel_cari').value.trim().toLowerCase();
 
             let list = dataDirektoriPelanggan.filter(p => {
                 if (salesF && p.sales_rep !== salesF) return false;
+                if (tipeF && p.tipe !== tipeF) return false;
                 if (statusF === 'Trial' && !p.trial_bulan_ini) return false;
                 if (statusF && statusF !== 'Trial' && p.status !== statusF) return false;
                 if (cari && !p.name.toLowerCase().includes(cari)) return false;
