@@ -1425,7 +1425,7 @@
                     <div class="grid grid-cols-3 gap-2 my-2.5 text-center">
                         <div class="bg-slate-50 rounded-lg py-1.5">
                             <div class="text-[9px] text-slate-500 uppercase">Order Terakhir</div>
-                            <div class="text-xs font-bold text-slate-800">${escOwner(p.last_order || '-')}</div>
+                            <div class="text-xs font-bold ${p.last_order ? 'text-slate-800' : 'text-slate-400'}">${p.last_order ? escOwner(p.last_order) : 'Belum pernah order'}</div>
                         </div>
                         <div class="bg-slate-50 rounded-lg py-1.5">
                             <div class="text-[9px] text-slate-500 uppercase">Jumlah Order</div>
