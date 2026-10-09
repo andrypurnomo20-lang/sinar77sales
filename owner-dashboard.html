@@ -841,6 +841,9 @@
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+        // Backend Cloud Run (lebih cepat). Isi dengan URL layanan setelah deploy, contoh: "https://sinar77-backend-xxxxx-et.a.run.app"
+        // Kalau kosong atau Cloud Run gagal, Dashboard otomatis memakai Apps Script seperti biasa.
+        const CLOUD_RUN_URL = "";
         let charts = {};
         let expectedCashSetoran = 0;
 
@@ -2274,7 +2277,15 @@
             const start = document.getElementById('start_date').value;
             const end = document.getElementById('end_date').value;
 
-            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}`)
+            const query = `?action=owner_dashboard&start_date=${start}&end_date=${end}`;
+            const dariAppsScript = () => fetchDenganRetry(APPS_SCRIPT_URL + query);
+            const mulai = performance.now();
+            const ambil = CLOUD_RUN_URL
+                ? fetchDenganRetry(CLOUD_RUN_URL + query, 1)
+                    .then(d => { if (!d || d.status !== 'success') throw new Error((d && d.message) || 'respons tidak valid'); console.log('Dashboard via Cloud Run: ' + Math.round(performance.now() - mulai) + ' ms'); return d; })
+                    .catch(err => { console.warn('Cloud Run gagal, pakai Apps Script:', err.message); return dariAppsScript(); })
+                : dariAppsScript();
+            ambil
                 .then(data => {
                     document.getElementById('loading-state').classList.add('hidden');
                     if (data.status !== 'success') {
