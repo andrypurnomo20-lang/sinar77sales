@@ -803,6 +803,57 @@
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+        // >>> JEMBATAN CLOUD RUN (otomatis; jangan diubah manual)
+        // Permintaan BACA (GET) dicoba ke Cloud Run dulu supaya lebih cepat; kalau gagal/error, otomatis memakai Apps Script.
+        // Permintaan TULIS (POST) tetap ke Apps Script. Setelah menulis, cache Cloud Run dibersihkan pada pembacaan berikutnya.
+        const CLOUD_RUN_URL = "https://sinar77-backend-395963284539.asia-southeast2.run.app"; // kosongkan "" untuk mematikan
+        (function () {
+          if (!CLOUD_RUN_URL || typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+          const asli = window.fetch.bind(window);
+          const AWAL = APPS_SCRIPT_URL + '?';
+          let matiSampai = 0;   // setelah Cloud Run gagal, jangan dicoba lagi sebentar
+          let kotorSampai = 0;  // setelah ada penulisan, bacaan berikutnya memaksa Cloud Run mengambil data segar
+          window.fetch = async function (input, init) {
+            init = init || {};
+            const url = typeof input === 'string' ? input : ((input && input.url) || '');
+            const metode = String(init.method || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
+            if (metode === 'POST' && url === APPS_SCRIPT_URL) {
+              const res = await asli(input, init);
+              if (res.ok) kotorSampai = Date.now() + 5000;
+              return res;
+            }
+            if (metode === 'GET' && url.indexOf(AWAL) === 0 && Date.now() > matiSampai) {
+              let action = null;
+              try { action = new URL(url).searchParams.get('action'); } catch (e) {}
+              if (action && action !== 'geocode') {
+                const mulai = performance.now();
+                const ctl = new AbortController();
+                const timer = setTimeout(() => ctl.abort(), 7000);
+                const luar = init.signal;
+                if (luar) { if (luar.aborted) ctl.abort(); else luar.addEventListener('abort', () => ctl.abort(), { once: true }); }
+                try {
+                  const tujuan = CLOUD_RUN_URL + '/?' + url.slice(AWAL.length) + (Date.now() < kotorSampai ? '&refresh=1' : '');
+                  const res = await asli(tujuan, Object.assign({}, init, { signal: ctl.signal }));
+                  clearTimeout(timer);
+                  if (res.ok) {
+                    const j = await res.clone().json().catch(() => null);
+                    if (j && j.status !== 'error') { console.log('[' + action + '] via Cloud Run ' + Math.round(performance.now() - mulai) + ' ms'); return res; }
+                    // Cloud Run menjawab error (mis. sheet belum ada): biarkan Apps Script yang menjawab
+                  } else {
+                    matiSampai = Date.now() + 30000;
+                  }
+                } catch (e) {
+                  clearTimeout(timer);
+                  if (luar && luar.aborted) throw e;      // dibatalkan oleh pemanggil: teruskan
+                  matiSampai = Date.now() + 60000;
+                  console.warn('Cloud Run gagal, memakai Apps Script:', e && e.message);
+                }
+              }
+            }
+            return asli(input, init);
+          };
+        })();
+        // <<< JEMBATAN CLOUD RUN
 
         // Kirim POST dengan batas waktu + coba ulang otomatis kalau sinyal jelek (bukan gagal beneran).
         // AMAN dipakai berkali-kali untuk payload yang SAMA karena backend mengecek ID (outlet_id /
@@ -1384,6 +1435,12 @@
                 });
         });
 
+        let clientBayarKreditId = null;
+        function ambilClientBayarKreditId() {
+            if (!clientBayarKreditId) clientBayarKreditId = 'BK' + Date.now() + Math.floor(10 + Math.random() * 90);
+            return clientBayarKreditId;
+        }
+
         document.getElementById('bayarkredit-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const sel = document.getElementById('bk_outlet_select');
@@ -1400,15 +1457,11 @@
             const txt = document.getElementById('bk-submit-text');
             btn.disabled = true; txt.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ form_type: 'bayar_kredit', outlet_id: outletId, outlet_name: outletName, sales_rep: salesRep, jumlah_dibayar: jumlah, dicatat_oleh: 'Sales', metode_bayar: document.getElementById('bk_metode_bayar').value })
-            })
-                .then(res => res.json())
+            postDenganRetry({ form_type: 'bayar_kredit', client_id: ambilClientBayarKreditId(), outlet_id: outletId, outlet_name: outletName, sales_rep: salesRep, jumlah_dibayar: jumlah, dicatat_oleh: 'Sales', metode_bayar: document.getElementById('bk_metode_bayar').value })
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan Pembayaran';
                     if (result.status === 'success') {
+                        clientBayarKreditId = null; // sudah pasti tersimpan — pembayaran BERIKUTNYA butuh ID baru
                         simpanSalesRep(salesRep);
                         let msg = `Pembayaran Rp${Number(jumlah).toLocaleString('id-ID')} tersimpan. Sisa kredit outlet ini sekarang Rp${result.sisa_total_outlet.toLocaleString('id-ID')}.`;
                         if (result.kelebihan > 0) msg += ` Catatan: ada kelebihan bayar Rp${result.kelebihan.toLocaleString('id-ID')} (outlet ini tidak punya kredit sebesar itu).`;
@@ -1543,6 +1596,13 @@
             document.getElementById('order-hint').style.display = (e.target.value === 'Order') ? 'block' : 'none';
         });
 
+        // ID kunjungan dibuat sekali & dipakai ulang selama belum sukses tersimpan (sama pola dengan order)
+        let clientVisitId = null;
+        function ambilClientVisitId() {
+            if (!clientVisitId) clientVisitId = 'V' + Date.now() + Math.floor(10 + Math.random() * 90);
+            return clientVisitId;
+        }
+
         document.getElementById('visit-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const sel = document.getElementById('visit_outlet_select');
@@ -1555,6 +1615,7 @@
 
             const newVisit = {
                 form_type: 'visit_log',
+                client_id: ambilClientVisitId(),
                 outlet_id: outletId, outlet_name: outletName,
                 sales_rep: document.getElementById('visit_sales_rep').value.trim(),
                 status_kunjungan: document.getElementById('status_kunjungan').value,
@@ -1568,11 +1629,11 @@
             const txt = document.getElementById('visit-submit-text');
             btn.disabled = true; txt.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(newVisit) })
-                .then(res => res.json())
+            postDenganRetry(newVisit)
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan Kunjungan';
                     if (result.status === 'success') {
+                        clientVisitId = null; // sudah pasti tersimpan — kunjungan BERIKUTNYA butuh ID baru
                         if (newVisit.sales_rep) simpanSalesRep(newVisit.sales_rep);
                         let msg = `Kunjungan ke ${newVisit.outlet_name} tersimpan!`;
                         if (result.gps_ditambal) msg += ' Outlet ini sebelumnya belum punya titik GPS — sudah otomatis dilengkapi dari lokasi check-in Anda barusan.';
@@ -2067,6 +2128,12 @@
         function closeModal() { document.getElementById('notification-modal').classList.add('hidden'); }
 
         // ============ CATAT PENGELUARAN ============
+        let clientPengeluaranId = null;
+        function ambilClientPengeluaranId() {
+            if (!clientPengeluaranId) clientPengeluaranId = 'PNG' + Date.now() + Math.floor(10 + Math.random() * 90);
+            return clientPengeluaranId;
+        }
+
         document.getElementById('pengeluaran-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const salesRep = document.getElementById('peng_sales_rep').value.trim();
@@ -2081,15 +2148,11 @@
             const txt = document.getElementById('peng-submit-text');
             btn.disabled = true; txt.innerText = 'Menyimpan...';
 
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ form_type: 'pengeluaran', sales_rep: salesRep, kategori, keterangan, jumlah, dicatat_oleh: 'Sales' })
-            })
-                .then(res => res.json())
+            postDenganRetry({ form_type: 'pengeluaran', client_id: ambilClientPengeluaranId(), sales_rep: salesRep, kategori, keterangan, jumlah, dicatat_oleh: 'Sales' })
                 .then(result => {
                     btn.disabled = false; txt.innerText = 'Simpan Pengeluaran';
                     if (result.status === 'success') {
+                        clientPengeluaranId = null; // sudah pasti tersimpan — pengeluaran BERIKUTNYA butuh ID baru
                         simpanSalesRep(salesRep);
                         showModal('Sukses', 'Pengeluaran tersimpan.');
                         document.getElementById('peng_keterangan').value = '';
