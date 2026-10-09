@@ -841,9 +841,57 @@
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
-        // Backend Cloud Run (lebih cepat). Isi dengan URL layanan setelah deploy, contoh: "https://sinar77-backend-xxxxx-et.a.run.app"
-        // Kalau kosong atau Cloud Run gagal, Dashboard otomatis memakai Apps Script seperti biasa.
-        const CLOUD_RUN_URL = "https://sinar77-backend-395963284539.asia-southeast2.run.app";
+        // >>> JEMBATAN CLOUD RUN (otomatis; jangan diubah manual)
+        // Permintaan BACA (GET) dicoba ke Cloud Run dulu supaya lebih cepat; kalau gagal/error, otomatis memakai Apps Script.
+        // Permintaan TULIS (POST) tetap ke Apps Script. Setelah menulis, cache Cloud Run dibersihkan pada pembacaan berikutnya.
+        const CLOUD_RUN_URL = "https://sinar77-backend-395963284539.asia-southeast2.run.app"; // kosongkan "" untuk mematikan
+        (function () {
+          if (!CLOUD_RUN_URL || typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+          const asli = window.fetch.bind(window);
+          const AWAL = APPS_SCRIPT_URL + '?';
+          let matiSampai = 0;   // setelah Cloud Run gagal, jangan dicoba lagi sebentar
+          let kotorSampai = 0;  // setelah ada penulisan, bacaan berikutnya memaksa Cloud Run mengambil data segar
+          window.fetch = async function (input, init) {
+            init = init || {};
+            const url = typeof input === 'string' ? input : ((input && input.url) || '');
+            const metode = String(init.method || (typeof input !== 'string' && input && input.method) || 'GET').toUpperCase();
+            if (metode === 'POST' && url === APPS_SCRIPT_URL) {
+              const res = await asli(input, init);
+              if (res.ok) kotorSampai = Date.now() + 5000;
+              return res;
+            }
+            if (metode === 'GET' && url.indexOf(AWAL) === 0 && Date.now() > matiSampai) {
+              let action = null;
+              try { action = new URL(url).searchParams.get('action'); } catch (e) {}
+              if (action && action !== 'geocode') {
+                const mulai = performance.now();
+                const ctl = new AbortController();
+                const timer = setTimeout(() => ctl.abort(), 7000);
+                const luar = init.signal;
+                if (luar) { if (luar.aborted) ctl.abort(); else luar.addEventListener('abort', () => ctl.abort(), { once: true }); }
+                try {
+                  const tujuan = CLOUD_RUN_URL + '/?' + url.slice(AWAL.length) + (Date.now() < kotorSampai ? '&refresh=1' : '');
+                  const res = await asli(tujuan, Object.assign({}, init, { signal: ctl.signal }));
+                  clearTimeout(timer);
+                  if (res.ok) {
+                    const j = await res.clone().json().catch(() => null);
+                    if (j && j.status !== 'error') { console.log('[' + action + '] via Cloud Run ' + Math.round(performance.now() - mulai) + ' ms'); return res; }
+                    // Cloud Run menjawab error (mis. sheet belum ada): biarkan Apps Script yang menjawab
+                  } else {
+                    matiSampai = Date.now() + 30000;
+                  }
+                } catch (e) {
+                  clearTimeout(timer);
+                  if (luar && luar.aborted) throw e;      // dibatalkan oleh pemanggil: teruskan
+                  matiSampai = Date.now() + 60000;
+                  console.warn('Cloud Run gagal, memakai Apps Script:', e && e.message);
+                }
+              }
+            }
+            return asli(input, init);
+          };
+        })();
+        // <<< JEMBATAN CLOUD RUN
         let charts = {};
         let expectedCashSetoran = 0;
 
@@ -2277,15 +2325,7 @@
             const start = document.getElementById('start_date').value;
             const end = document.getElementById('end_date').value;
 
-            const query = `?action=owner_dashboard&start_date=${start}&end_date=${end}`;
-            const dariAppsScript = () => fetchDenganRetry(APPS_SCRIPT_URL + query);
-            const mulai = performance.now();
-            const ambil = CLOUD_RUN_URL
-                ? fetchDenganRetry(CLOUD_RUN_URL + query, 1)
-                    .then(d => { if (!d || d.status !== 'success') throw new Error((d && d.message) || 'respons tidak valid'); console.log('Dashboard via Cloud Run: ' + Math.round(performance.now() - mulai) + ' ms'); return d; })
-                    .catch(err => { console.warn('Cloud Run gagal, pakai Apps Script:', err.message); return dariAppsScript(); })
-                : dariAppsScript();
-            ambil
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}`)
                 .then(data => {
                     document.getElementById('loading-state').classList.add('hidden');
                     if (data.status !== 'success') {
