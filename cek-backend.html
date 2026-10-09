@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cek Backend Cloud Run vs Apps Script</title>
+<style>
+  :root { --bg:#f1f5f9; --kartu:#fff; --teks:#0f172a; --redup:#64748b; --garis:#e2e8f0; --hijau:#047857; --merah:#b91c1c; --kuning:#b45309; --biru:#1d4ed8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f172a; --kartu:#1e293b; --teks:#f1f5f9; --redup:#94a3b8; --garis:#334155; --hijau:#34d399; --merah:#f87171; --kuning:#fbbf24; --biru:#60a5fa; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--teks); }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 4px 0 2px; }
+  p.sub { margin: 0 0 14px; color: var(--redup); font-size: 13px; line-height: 1.5; }
+  .kartu { background: var(--kartu); border: 1px solid var(--garis); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; background: var(--biru); color: #fff; }
+  button.sekunder { background: transparent; color: var(--biru); border: 1px solid var(--garis); }
+  button:disabled { opacity: .5; cursor: default; }
+  .baris { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .ringkas { display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; font-size: 14px; }
+  .ringkas b { font-size: 20px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align:left; padding: 7px 6px; border-bottom: 1px solid var(--garis); vertical-align: top; }
+  th { color: var(--redup); font-weight: 600; font-size: 12px; }
+  td.n { text-align:right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sama { color: var(--hijau); font-weight: 700; } .beda { color: var(--merah); font-weight: 700; } .err { color: var(--kuning); font-weight: 700; }
+  code { font-size: 12px; color: var(--redup); word-break: break-all; }
+  pre { margin: 6px 0 0; padding: 8px; background: var(--bg); border-radius: 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow:auto; }
+  .catatan { font-size: 12px; color: var(--redup); line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cek Backend: Cloud Run vs Apps Script</h1>
+  <p class="sub">Halaman ini memanggil setiap endpoint baca di kedua backend dengan parameter yang sama, lalu membandingkan hasilnya. Tidak ada data yang diubah.</p>
+
+  <div class="kartu">
+    <div class="baris">
+      <button id="mulai">Mulai cek semua</button>
+      <button id="salin" class="sekunder" disabled>Salin hasil</button>
+      <span id="status" class="catatan"></span>
+    </div>
+    <div class="ringkas" id="ringkas"></div>
+    <p class="catatan" style="margin:10px 0 0">Kalau ada yang BEDA: ulangi sekali lagi. Apps Script menyimpan cache 1–2 menit, jadi bila ada input baru masuk di antara dua panggilan, angkanya bisa sementara berbeda. Kalau tetap BEDA, tekan "Salin hasil" dan kirim ke Claude.</p>
+  </div>
+
+  <div class="kartu" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Endpoint</th><th class="n">Apps Script</th><th class="n">Cloud Run</th><th>Hasil</th></tr></thead>
+      <tbody id="isi"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZDQNq7Ub4H2aVcT9ARnPmCwzLTZf7HuaqtqMspbAB8-2ti8-Jc_5Mzx7JI83eHbPF/exec";
+const CLOUD_RUN_URL = "https://sinar77-backend-395963284539.asia-southeast2.run.app";
+const hasilTeks = [];
+
+const el = id => document.getElementById(id);
+const wita = (offsetHari = 0) => new Date(Date.now() + 8 * 3600e3 - offsetHari * 86400e3).toISOString().slice(0, 10);
+
+async function ambil(dasar, params, tambahan = '') {
+  const q = new URLSearchParams(params).toString() + tambahan;
+  const mulai = performance.now();
+  try {
+    const r = await fetch(dasar + '?' + q, { cache: 'no-store' });
+    const teks = await r.text();
+    let json = null; try { json = JSON.parse(teks); } catch (e) {}
+    return { ms: Math.round(performance.now() - mulai), http: r.status, json, teks };
+  } catch (e) { return { ms: Math.round(performance.now() - mulai), http: 0, json: null, galat: e.message }; }
+}
+
+function bandingkan(a, b, path = '$', keluar = []) {
+  if (keluar.length >= 12) return keluar;
+  if (a === b) return keluar;
+  const ta = Array.isArray(a) ? 'array' : (a === null ? 'null' : typeof a), tb = Array.isArray(b) ? 'array' : (b === null ? 'null' : typeof b);
+  if (ta !== tb) { keluar.push(`${path}: Apps Script=${JSON.stringify(a)} | Cloud Run=${JSON.stringify(b)}`); return keluar; }
+  if (ta === 'array') {
+    if (a.length !== b.length) keluar.push(`${path}: panjang array ${a.length} vs ${b.length}`);
+    for (let i = 0; i < Math.min(a.length, b.length) && keluar.length < 12; i++) bandingkan(a[i], b[i], `${path}[${i}]`, keluar);
+  } else if (ta === 'object') {
+    const kunci = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const k of kunci) { if (keluar.length >= 12) break; if (!(k in a)) keluar.push(`${path}.${k}: hanya ada di Cloud Run`); else if (!(k in b)) keluar.push(`${path}.${k}: hanya ada di Apps Script`); else bandingkan(a[k], b[k], `${path}.${k}`, keluar); }
+  } else keluar.push(`${path}: Apps Script=${JSON.stringify(a)} | Cloud Run=${JSON.stringify(b)}`);
+  return keluar;
+}
+
+async function jalankan() {
+  el('mulai').disabled = true; el('salin').disabled = true; el('isi').innerHTML = ''; hasilTeks.length = 0;
+  const ringkas = { sama: 0, beda: 0, err: 0 };
+  const setStatus = t => el('status').textContent = t;
+
+  setStatus('Membaca daftar sales & outlet…');
+  const [ls, lo] = await Promise.all([ambil(APPS_SCRIPT_URL, { action: 'list_sales' }), ambil(APPS_SCRIPT_URL, { action: 'list_outlets' })]);
+  const sales = ((ls.json && ls.json.sales) || []).slice(0, 2);
+  const outlets = ((lo.json && lo.json.outlets) || []);
+  const outletA = (outlets[0] && outlets[0].id) || '';
+  const outletB = (outlets[Math.floor(outlets.length / 2)] && outlets[Math.floor(outlets.length / 2)].id) || outletA;
+  const hari = wita(), kemarin = wita(1), bulan = hari.slice(0, 7), awalBulan = bulan + '-01';
+
+  const daftar = [
+    { action: 'list_outlets' }, { action: 'master_data' }, { action: 'list_sales' }, { action: 'price_list' }, { action: 'stok_depo' }, { action: 'menunggu_kirim' },
+    { action: 'today_progress_all' }, { action: 'direktori_pelanggan' },
+    { action: 'owner_dashboard', start_date: awalBulan, end_date: hari }, { action: 'owner_dashboard', start_date: '2020-01-01', end_date: hari },
+    { action: 'progres_bulanan', bulan }, { action: 'riwayat_transaksi', start_date: awalBulan, end_date: hari, metode_bayar: '' },
+    { action: 'sisa_kredit', outlet_id: outletA }, { action: 'sisa_kredit', outlet_id: outletB }, { action: 'harga_custom_outlet', outlet_id: outletA }
+  ];
+  for (const s of sales) {
+    daftar.push({ action: 'today_progress', sales_rep: s }, { action: 'progres_bulanan', bulan, sales_rep: s }, { action: 'progress_bulan_ini', sales_rep: s, bulan }, { action: 'gps_bermasalah', sales_rep: s, bulan });
+    for (const t of [hari, kemarin]) daftar.push({ action: 'expected_cash', sales_rep: s, tanggal: t }, { action: 'laporan_penutupan', sales_rep: s, tanggal: t }, { action: 'stok_hari_ini', sales_rep: s, tanggal: t },
+      { action: 'orders_untuk_edit', tanggal: t, sales_rep: s }, { action: 'nota_dibawa', tanggal: t, sales_rep: s }, { action: 'pengeluaran_hari_ini', sales_rep: s, tanggal: t });
+  }
+
+  for (let i = 0; i < daftar.length; i++) {
+    const p = daftar[i];
+    const ket = p.action + ' ' + Object.entries(p).filter(([k]) => k !== 'action').map(([k, v]) => v).join(' · ');
+    setStatus(`Memeriksa ${i + 1} dari ${daftar.length}: ${p.action}…`);
+    const a = await ambil(APPS_SCRIPT_URL, p);
+    const c = await ambil(CLOUD_RUN_URL, p, '&refresh=1');
+    let hasil, rincian = [];
+    if (!a.json || !c.json) { hasil = 'err'; rincian = [`Apps Script: HTTP ${a.http} ${a.galat || (a.json ? 'ok' : 'bukan JSON')}`, `Cloud Run: HTTP ${c.http} ${c.galat || (c.json ? 'ok' : 'bukan JSON')} ${c.json ? '' : (c.teks || '').slice(0, 200)}`]; }
+    else if (c.json.status === 'error' && a.json.status !== 'error') { hasil = 'err'; rincian = ['Cloud Run error: ' + c.json.message]; }
+    else { rincian = bandingkan(a.json, c.json); hasil = rincian.length ? 'beda' : 'sama'; }
+    ringkas[hasil]++;
+    const tr = document.createElement('tr');
+    const label = { sama: 'SAMA', beda: 'BEDA', err: 'ERROR' }[hasil];
+    tr.innerHTML = `<td>${esc(ket)}</td><td class="n">${a.ms} ms</td><td class="n">${c.ms} ms</td><td><span class="${hasil}">${label}</span>${rincian.length ? '<pre>' + esc(rincian.join('\n')) + '</pre>' : ''}</td>`;
+    el('isi').appendChild(tr);
+    hasilTeks.push(`${label} | ${ket} | AS ${a.ms}ms | CR ${c.ms}ms${rincian.length ? '\n   ' + rincian.join('\n   ') : ''}`);
+    el('ringkas').innerHTML = `<span><b class="sama">${ringkas.sama}</b> sama</span><span><b class="beda">${ringkas.beda}</b> beda</span><span><b class="err">${ringkas.err}</b> error</span>`;
+  }
+  setStatus(`Selesai: ${daftar.length} endpoint diperiksa.`);
+  el('mulai').disabled = false; el('salin').disabled = false;
+}
+const esc = s => String(s).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+el('mulai').onclick = jalankan;
+el('salin').onclick = async () => { try { await navigator.clipboard.writeText(hasilTeks.join('\n')); el('status').textContent = 'Hasil disalin. Tempel ke chat Claude.'; } catch (e) { prompt('Salin teks ini:', hasilTeks.join('\n')); } };
+</script>
+</body>
+</html>
