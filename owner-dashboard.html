@@ -39,6 +39,7 @@
             <button onclick="showTab('progres')" id="tab-btn-progres" class="tab-nav-btn shrink-0">🚶 Progres Sales</button>
             <button onclick="showTab('riwayat')" id="tab-btn-riwayat" class="tab-nav-btn shrink-0">🧾 Riwayat Transaksi</button>
             <button onclick="showTab('pelanggan')" id="tab-btn-pelanggan" class="tab-nav-btn shrink-0">👥 Pelanggan</button>
+            <button onclick="showTab('retur')" id="tab-btn-retur" class="tab-nav-btn shrink-0">↩️ Retur<span id="retur-badge" class="hidden ml-1 bg-red-500 text-white rounded-full px-1.5 text-[10px]"></span></button>
             <button onclick="showTab('setoran')" id="tab-btn-setoran" class="tab-nav-btn shrink-0">💵 Setoran Harian</button>
             <button onclick="showTab('stok')" id="tab-btn-stok" class="tab-nav-btn shrink-0">📦 Stok Harian</button>
             <button onclick="showTab('laporan')" id="tab-btn-laporan" class="tab-nav-btn shrink-0">📋 Laporan Penutupan</button>
@@ -90,7 +91,7 @@
             <section>
                 <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Posisi Kas (Semua Waktu)</h2>
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
                         <div class="bg-emerald-50 rounded-xl p-3">
                             <div class="text-[10px] text-emerald-700 uppercase">Pemasukan Cash</div>
                             <div class="text-sm font-bold text-emerald-800" id="kas-pemasukan-cash">Rp 0</div>
@@ -102,6 +103,10 @@
                         <div class="bg-orange-50 rounded-xl p-3">
                             <div class="text-[10px] text-orange-700 uppercase">Pengeluaran</div>
                             <div class="text-sm font-bold text-orange-800" id="kas-pengeluaran">Rp 0</div>
+                        </div>
+                        <div class="bg-violet-50 rounded-xl p-3">
+                            <div class="text-[10px] text-violet-700 uppercase">Uang Kembali Retur</div>
+                            <div class="text-sm font-bold text-violet-800" id="kas-retur">Rp 0</div>
                         </div>
                         <div class="bg-slate-100 rounded-xl p-3">
                             <div class="text-[10px] text-slate-500 uppercase">Saldo Rekening</div>
@@ -136,6 +141,7 @@
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 col-span-2 md:col-span-1">
                         <div class="text-[10px] text-slate-400 uppercase">Omzet</div>
                         <div class="text-xl font-extrabold text-emerald-600" id="kpi-omzet">Rp 0</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5" id="kpi-omzet-retur"></div>
                     </div>
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="text-[10px] text-slate-400 uppercase">Repeat Rate</div>
@@ -211,10 +217,12 @@
             <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-200">
                     <h3 class="text-xs font-bold uppercase text-amber-700 mb-2">⚠ Akan Jatuh Tempo (≤3 hari)</h3>
+                    <div id="total-akan-jatuh-tempo" class="text-lg font-bold text-amber-700 mb-2"></div>
                     <div id="list-akan-jatuh-tempo" class="space-y-2 text-xs"></div>
                 </div>
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-red-300">
                     <h3 class="text-xs font-bold uppercase text-red-700 mb-2">🚨 Sudah Lewat Jatuh Tempo</h3>
+                    <div id="total-lewat-jatuh-tempo" class="text-lg font-bold text-red-700 mb-2"></div>
                     <div id="list-lewat-jatuh-tempo" class="space-y-2 text-xs"></div>
                 </div>
             </section>
@@ -344,7 +352,7 @@
                 <p id="pel-print-ringkasan" class="text-xs text-slate-600"></p>
             </div>
             <div class="card p-4 mb-4 no-print">
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
                     <select id="pel_filter_sales" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="">Semua Sales</option>
                     </select>
@@ -357,6 +365,12 @@
                         <option value="Trial">Baru Bulan Ini (Trial)</option>
                         <option value="Follow-up">Follow-up</option>
                         <option value="JatuhTempo">Piutang Jatuh Tempo</option>
+                    </select>
+                    <select id="pel_filter_repeat" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="">Semua Order</option>
+                        <option value="repeat">Sudah Repeat Order (2x atau lebih)</option>
+                        <option value="sekali">Baru order 1x (belum repeat)</option>
+                        <option value="belum">Belum pernah order</option>
                     </select>
                     <select id="pel_filter_sort" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="omzet">Urutkan: Omzet Terbesar</option>
@@ -374,6 +388,35 @@
             <div id="pel-loading" class="text-center py-16 text-slate-400 text-sm">Memuat direktori pelanggan...</div>
             <div id="pel-kosong" class="hidden text-center py-16 text-slate-400 text-sm">Tidak ada pelanggan yang cocok dengan filter ini.</div>
             <div id="pel-list" class="space-y-3"></div>
+        </div>
+
+        <!-- ============ TAB: RETUR ============ -->
+        <div id="tab-retur" class="tab-panel hidden">
+            <div class="space-y-4 max-w-3xl">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Retur Produk</h2>
+                    <p class="text-xs text-slate-500">Setujui retur saat barangnya sudah sampai di depo. Sebelum disetujui, stok, tagihan, setoran, dan omzet belum berubah.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-amber-200 p-4">
+                    <h3 class="text-xs font-bold uppercase text-amber-700 mb-2">Menunggu Persetujuan <span id="retur-jml-menunggu" class="text-slate-400 font-normal"></span></h3>
+                    <div id="retur-menunggu-list" class="space-y-3"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4">
+                    <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+                        <h3 class="text-xs font-bold uppercase text-slate-500">Riwayat Retur</h3>
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="retur_start" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
+                            <span class="text-xs text-slate-400">s/d</span>
+                            <input type="date" id="retur_end" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
+                            <button onclick="loadDaftarRetur()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Tampilkan</button>
+                        </div>
+                    </div>
+                    <div id="retur-ringkasan" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"></div>
+                    <div id="retur-riwayat-list" class="space-y-2"></div>
+                </div>
+            </div>
         </div>
 
         <!-- ============ TAB: SETORAN HARIAN ============ -->
@@ -762,6 +805,7 @@
                             <div class="flex justify-between"><span>Cash dari pengantaran barang</span><span id="lap-cash-order">Rp 0</span></div>
                             <div class="flex justify-between"><span>+ Penagihan kredit (Cash)</span><span id="lap-tagih-cash">Rp 0</span></div>
                             <div class="flex justify-between"><span>− Pengeluaran</span><span id="lap-keluar">Rp 0</span></div>
+                            <div class="flex justify-between"><span>− Uang kembali retur</span><span id="lap-retur-uang">Rp 0</span></div>
                         </div>
                         <p class="text-[10px] text-slate-400 mt-2">Angka yang sama dengan tab Setoran Harian dan yang dilihat sales di app. Dihitung dari petugas yang mengantar dan tanggal barang terkirim.</p>
                     </div>
@@ -785,6 +829,14 @@
                             <div id="lap-pengeluaran-wrapper" class="hidden">
                                 <h4 class="text-[11px] font-bold uppercase text-slate-500 mb-1">Pengeluaran</h4>
                                 <div id="lap-pengeluaran-list" class="space-y-1"></div>
+                            </div>
+                            <div id="lap-retur-wrapper" class="hidden">
+                                <h4 class="text-[11px] font-bold uppercase text-slate-500 mb-1">Retur Disetujui</h4>
+                                <div id="lap-retur-list" class="space-y-1"></div>
+                            </div>
+                            <div id="lap-retur-menunggu-wrapper" class="hidden">
+                                <h4 class="text-[11px] font-bold uppercase text-slate-500 mb-1">Retur Menunggu Persetujuan</h4>
+                                <div id="lap-retur-menunggu-list" class="space-y-1"></div>
                             </div>
                             <p id="lap-kas-kosong" class="hidden text-xs text-slate-400">Tidak ada pengantaran, penagihan, maupun pengeluaran pada tanggal ini.</p>
                         </div>
@@ -939,7 +991,7 @@
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
 
-            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan', 'pelanggan'].forEach(t => {
+            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan', 'pelanggan', 'retur'].forEach(t => {
                 document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
             });
 
@@ -954,6 +1006,7 @@
             if (name === 'laporan' && !laporanSudahDimuat) { laporanSudahDimuat = true; initLaporanTab(); }
             if (name === 'pengaturan' && !pengaturanSudahDimuat) { pengaturanSudahDimuat = true; loadSalesListSetoran(); initEditOrderTab(); initNotaTab(); }
             if (name === 'pelanggan' && !pelangganSudahDimuat) { pelangganSudahDimuat = true; initPelangganTab(); }
+            if (name === 'retur') initReturTab();
         }
 
         // ============ TAB: PROGRES SALES HARI INI ============
@@ -1288,6 +1341,109 @@
                 .catch(err => alert('Koneksi error: ' + err.message));
         }
 
+
+        // ============ RETUR (OWNER) ============
+        function setBadgeRetur(n) {
+            const b = document.getElementById('retur-badge');
+            if (!b) return;
+            b.innerText = n; b.classList.toggle('hidden', !(n > 0));
+        }
+
+        function initReturTab() {
+            const tgl = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+            if (!document.getElementById('retur_end').value) document.getElementById('retur_end').value = tgl;
+            if (!document.getElementById('retur_start').value) document.getElementById('retur_start').value = tgl.slice(0, 8) + '01';
+            loadDaftarRetur();
+        }
+
+        function badgeStatusRetur(st) {
+            if (st === 'Disetujui') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Disetujui</span>';
+            if (st === 'Ditolak') return '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">Ditolak</span>';
+            return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Menunggu</span>';
+        }
+
+        function rincianItemRetur(g) {
+            return g.items.map(it => `<div class="flex justify-between gap-2 text-[11px]"><span class="min-w-0">${escOwner(it.produk)} × ${it.qty} <span class="${it.kondisi === 'Layak' ? 'text-emerald-600' : 'text-red-600'} font-semibold">${escOwner(it.kondisi)}</span>${it.alasan ? ` <span class="text-slate-400">• ${escOwner(it.alasan)}</span>` : ''}</span><span class="shrink-0 font-semibold">${rupiah(it.nilai)}</span></div>`).join('');
+        }
+
+        // Perkiraan dampak yang akan terjadi kalau disetujui (angka resmi dihitung server saat disetujui)
+        function perkiraanDampakRetur(g) {
+            if (g.metode_bayar === 'Kredit') return 'Order kredit: sisa tagihan pelanggan dipotong sebesar nilai retur. Kalau pelanggan sudah mencicil lebih dari nilai order yang baru, kelebihannya dikembalikan oleh sales.';
+            return 'Order cash: sales mengganti uang pelanggan sebesar nilai retur, dan setoran sales berkurang sebesar itu.';
+        }
+
+        function loadDaftarRetur() {
+            const start = document.getElementById('retur_start').value, end = document.getElementById('retur_end').value;
+            document.getElementById('retur-menunggu-list').innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Memuat...</p>';
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=daftar_retur&start_date=${start}&end_date=${end}`)
+                .then(r => {
+                    if (r.status !== 'success') { alert('Gagal memuat retur: ' + r.message); return; }
+                    setBadgeRetur(r.menunggu.length);
+                    document.getElementById('retur-jml-menunggu').innerText = r.menunggu.length ? `(${r.menunggu.length})` : '';
+                    document.getElementById('retur-menunggu-list').innerHTML = r.menunggu.length === 0
+                        ? '<p class="text-xs text-slate-400 text-center py-4">Tidak ada retur yang menunggu persetujuan.</p>'
+                        : r.menunggu.map(g => `
+                            <div class="border border-amber-200 rounded-xl p-3 bg-amber-50/40">
+                                <div class="flex justify-between items-start gap-2">
+                                    <div class="min-w-0"><div class="font-bold text-sm text-slate-900">${escOwner(g.outlet_name)}</div>
+                                        <div class="text-[11px] text-slate-500">Diajukan ${escOwner(g.petugas)} • ${escOwner(g.tanggal_ajuan)} ${escOwner(g.waktu || '')} • ${g.cara === 'Tukar Guling' ? 'Tukar guling' : 'Retur biasa'}</div></div>
+                                    <div class="text-right shrink-0"><div class="font-extrabold text-slate-900">${rupiah(g.total_nilai)}</div>${badgeMetodeOwner(g.metode_bayar)}</div>
+                                </div>
+                                <div class="mt-2 space-y-0.5">${rincianItemRetur(g)}</div>
+                                <p class="text-[10px] text-slate-500 mt-2">${perkiraanDampakRetur(g)}</p>
+                                ${g.total_tidak_layak > 0 ? `<p class="text-[10px] text-red-600 mt-0.5">Barang tidak layak ${rupiah(g.total_tidak_layak)} tidak masuk stok (kerugian perusahaan).</p>` : ''}
+                                <input type="text" id="retur_catatan_${escOwner(g.retur_id)}" placeholder="Catatan (opsional)" class="w-full mt-2 px-2.5 py-2 border border-slate-300 rounded-lg text-xs">
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <button onclick="prosesReturOwner('${escOwner(g.retur_id)}','setuju')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg">Setujui (barang sudah diterima)</button>
+                                    <button onclick="prosesReturOwner('${escOwner(g.retur_id)}','tolak')" class="bg-white hover:bg-slate-100 text-red-600 border border-red-200 text-xs font-bold py-2 rounded-lg">Tolak</button>
+                                </div>
+                            </div>`).join('');
+
+                    const t = r.ringkasan;
+                    const kotak = (label, nilai, warna) => `<div class="${warna} rounded-xl p-2.5"><div class="text-[9px] uppercase font-semibold text-slate-500">${label}</div><div class="text-sm font-extrabold text-slate-800">${nilai}</div></div>`;
+                    document.getElementById('retur-ringkasan').innerHTML =
+                        kotak('Retur disetujui', `${t.disetujui} • ${rupiah(t.nilai)}`, 'bg-violet-50') +
+                        kotak('Barang layak (kembali ke stok)', rupiah(t.layak), 'bg-emerald-50') +
+                        kotak('Barang tidak layak (kerugian)', rupiah(t.tidak_layak), 'bg-red-50') +
+                        kotak('Uang kembali ke pelanggan', rupiah(t.uang_kembali), 'bg-amber-50');
+                    document.getElementById('retur-riwayat-list').innerHTML = r.riwayat.length === 0
+                        ? '<p class="text-xs text-slate-400 text-center py-4">Tidak ada retur pada rentang tanggal ini.</p>'
+                        : r.riwayat.map(g => `
+                            <div class="border border-slate-200 rounded-xl p-3 text-xs">
+                                <div class="flex justify-between items-center gap-2"><span class="font-bold text-slate-800 min-w-0">${escOwner(g.outlet_name)}</span><span class="flex items-center gap-1 shrink-0">${badgeMetodeOwner(g.metode_bayar)}${badgeStatusRetur(g.status)}</span></div>
+                                <div class="text-[10px] text-slate-500 mb-1">${escOwner(g.petugas)} • diajukan ${escOwner(g.tanggal_ajuan)}${g.tanggal_disetujui ? ` • diproses ${escOwner(g.tanggal_disetujui)}` : ''} • ${g.cara === 'Tukar Guling' ? 'Tukar guling' : 'Retur biasa'}</div>
+                                ${rincianItemRetur(g)}
+                                <div class="flex justify-between font-bold border-t border-slate-100 pt-1 mt-1"><span>Total</span><span>${rupiah(g.total_nilai)}</span></div>
+                                ${g.status === 'Disetujui' ? `<div class="text-[10px] text-slate-500 mt-0.5">Tagihan berkurang ${rupiah(g.potong_tagihan)} • uang kembali ke pelanggan ${rupiah(g.uang_kembali)}</div>` : ''}
+                                ${g.catatan ? `<div class="text-[10px] text-slate-400 mt-0.5">Catatan: ${escOwner(g.catatan)}</div>` : ''}
+                            </div>`).join('');
+                })
+                .catch(err => alert('Koneksi error: ' + err.message));
+        }
+
+        function prosesReturOwner(returId, aksi) {
+            const teks = aksi === 'setuju'
+                ? 'Setujui retur ini? Stok, tagihan, setoran, dan omzet akan langsung berubah.'
+                : 'Tolak retur ini? Tidak ada angka yang berubah.';
+            if (!confirm(teks)) return;
+            const catatan = (document.getElementById('retur_catatan_' + returId) || {}).value || '';
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ form_type: 'proses_retur', retur_id: returId, aksi, diproses_oleh: 'Owner', catatan })
+            })
+                .then(res => res.json())
+                .then(r => {
+                    if (r.status !== 'success') { alert('Gagal: ' + r.message); return; }
+                    if (r.already_processed) alert('Retur ini sudah diproses sebelumnya (' + r.status_retur + ').');
+                    else if (aksi === 'setuju') alert(`Retur disetujui. Tagihan berkurang ${rupiah(r.potong_tagihan)}, uang kembali ke pelanggan ${rupiah(r.uang_kembali)}.`);
+                    else alert('Retur ditolak.');
+                    // angka di tab lain ikut berubah, jadi paksa dimuat ulang saat dibuka berikutnya
+                    pelangganSudahDimuat = false; progresSudahDimuat = false; stokSudahDimuat = false;
+                    loadDaftarRetur();
+                })
+                .catch(err => alert('Koneksi error: ' + err.message));
+        }
+
         // ============ BAYAR KREDIT (OWNER) ============
         function labelStatusKredit(status) {
             if (status === 'Lunas') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Lunas</span>';
@@ -1441,6 +1597,7 @@
             const salesF = document.getElementById('pel_filter_sales').value;
             const tipeF = document.getElementById('pel_filter_tipe').value;
             const statusF = document.getElementById('pel_filter_status').value;
+            const repeatF = document.getElementById('pel_filter_repeat').value;
             const sortF = document.getElementById('pel_filter_sort').value;
             const cari = document.getElementById('pel_cari').value.trim().toLowerCase();
 
@@ -1450,6 +1607,9 @@
                 if (statusF === 'Trial' && !p.trial_bulan_ini) return false;
                 if (statusF === 'JatuhTempo' && !p.jatuh_tempo) return false;
                 if (statusF && statusF !== 'Trial' && statusF !== 'JatuhTempo' && p.status !== statusF) return false;
+                if (repeatF === 'repeat' && !(p.total_orders >= 2)) return false;
+                if (repeatF === 'sekali' && p.total_orders !== 1) return false;
+                if (repeatF === 'belum' && p.total_orders > 0) return false;
                 if (cari && !p.name.toLowerCase().includes(cari)) return false;
                 return true;
             });
@@ -1988,7 +2148,7 @@
                     if (result.status !== 'success') { alert('Gagal memuat: ' + result.message); return; }
 
                     const kas = result.kas;
-                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0;
+                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0 || (kas.retur || []).length > 0 || (kas.retur_menunggu || []).length > 0;
                     // Kosong HANYA kalau tidak ada closing, pengantaran, penagihan, maupun pengeluaran
                     if (result.closings.length === 0 && !adaKas) {
                         document.getElementById('laporan-kosong').classList.remove('hidden');
@@ -2000,6 +2160,15 @@
                     document.getElementById('lap-cash-order').innerText = rupiah(kas.cash_order);
                     document.getElementById('lap-tagih-cash').innerText = rupiah(kas.penagihan_cash);
                     document.getElementById('lap-keluar').innerText = rupiah(kas.total_pengeluaran);
+                    document.getElementById('lap-retur-uang').innerText = rupiah(kas.retur_uang_kembali || 0);
+                    const kartuReturLap = (g, menunggu) => `<div class="${menunggu ? 'bg-amber-50' : 'bg-violet-50'} rounded-lg p-2 text-xs">
+                        <div class="flex justify-between items-center gap-2"><span class="font-medium text-slate-800 min-w-0">${escOwner(g.outlet_name)}</span><span class="font-semibold shrink-0">${rupiah(g.total_nilai)}</span></div>
+                        <div class="text-[10px] text-slate-500">${g.items.map(it => `${escOwner(it.produk)} ${it.qty} (${escOwner(it.kondisi)})`).join(', ')} • ${g.cara === 'Tukar Guling' ? 'Tukar guling' : 'Retur'} • order ${escOwner(g.metode_bayar)}${menunggu ? '' : ` • tagihan −${rupiah(g.potong_tagihan)} • uang kembali ${rupiah(g.uang_kembali)}`}</div>
+                    </div>`;
+                    const rw = document.getElementById('lap-retur-wrapper');
+                    if ((kas.retur || []).length > 0) { document.getElementById('lap-retur-list').innerHTML = kas.retur.map(g => kartuReturLap(g, false)).join(''); rw.classList.remove('hidden'); } else rw.classList.add('hidden');
+                    const rmw = document.getElementById('lap-retur-menunggu-wrapper');
+                    if ((kas.retur_menunggu || []).length > 0) { document.getElementById('lap-retur-menunggu-list').innerHTML = kas.retur_menunggu.map(g => kartuReturLap(g, true)).join(''); rmw.classList.remove('hidden'); } else rmw.classList.add('hidden');
 
                     // ---- Bagian 1: Kas ----
                     const pengWrap = document.getElementById('lap-pengantaran-wrapper');
@@ -2354,6 +2523,7 @@
             document.getElementById('kas-pemasukan-cash').innerText = rupiah(d.posisi_kas.total_pemasukan_cash);
             document.getElementById('kas-penagihan').innerText = rupiah(d.posisi_kas.total_penagihan_cash + d.posisi_kas.total_penagihan_transfer);
             document.getElementById('kas-pengeluaran').innerText = rupiah(d.posisi_kas.total_pengeluaran);
+            document.getElementById('kas-retur').innerText = rupiah(d.posisi_kas.total_retur_uang_kembali || 0);
             document.getElementById('kas-rekening').innerText = rupiah(d.posisi_kas.saldo_rekening);
             document.getElementById('kas-uang-fisik').innerText = rupiah(d.posisi_kas.uang_fisik);
             document.getElementById('kas-total-uang').innerText = rupiah(d.posisi_kas.total_uang);
@@ -2361,6 +2531,9 @@
             document.getElementById('kpi-visit').innerText = d.totals.total_visit;
             document.getElementById('kpi-order').innerText = d.totals.total_order;
             document.getElementById('kpi-omzet').innerText = rupiah(d.totals.omzet);
+            document.getElementById('kpi-omzet-retur').innerText = (d.totals.retur > 0)
+                ? `bersih • kotor ${rupiah(d.totals.omzet_kotor)} − retur ${rupiah(d.totals.retur)}` : '';
+            setBadgeRetur((d.retur && d.retur.menunggu_persetujuan) || 0);
 
             const repeatRate = d.repeat_rate.trial > 0 ? Math.round((d.repeat_rate.repeat / d.repeat_rate.trial) * 100) : 0;
             document.getElementById('kpi-repeat-rate').innerText = repeatRate + '%';
@@ -2407,12 +2580,17 @@
             document.getElementById('tiktok-tidak-order').innerText = d.tiktok_funnel.tidak_order;
             document.getElementById('tiktok-tidak-total').innerText = d.tiktok_funnel.tidak_total;
 
-            // Kredit jatuh tempo
-            renderList('list-akan-jatuh-tempo', d.kredit.akan_jatuh_tempo, item =>
+            // Kredit jatuh tempo — digabung per outlet (bukan per item), total ditampilkan di atas
+            const akanGab = gabungKreditPerOutlet(d.kredit.akan_jatuh_tempo);
+            const lewatGab = gabungKreditPerOutlet(d.kredit.lewat_jatuh_tempo);
+            document.getElementById('total-akan-jatuh-tempo').innerText = akanGab.length ? `${rupiah(akanGab.reduce((a, x) => a + x.nominal, 0))} • ${akanGab.length} outlet` : '';
+            document.getElementById('total-lewat-jatuh-tempo').innerText = lewatGab.length ? `${rupiah(lewatGab.reduce((a, x) => a + x.nominal, 0))} • ${lewatGab.length} outlet` : '';
+
+            renderList('list-akan-jatuh-tempo', akanGab, item =>
                 `<div class="flex justify-between bg-amber-50 rounded-lg p-2"><span>${item.outlet}</span><span class="font-semibold">${rupiah(item.nominal)} — ${item.hari} hari lagi</span></div>`,
                 'Tidak ada kredit yang akan jatuh tempo.');
 
-            renderList('list-lewat-jatuh-tempo', d.kredit.lewat_jatuh_tempo, item =>
+            renderList('list-lewat-jatuh-tempo', lewatGab, item =>
                 `<div class="flex justify-between bg-red-50 rounded-lg p-2"><span>${item.outlet}</span><span class="font-semibold text-red-700">${rupiah(item.nominal)} — telat ${Math.abs(item.hari)} hari</span></div>`,
                 'Tidak ada kredit yang telat.');
 
@@ -2460,6 +2638,18 @@
             const keys = Object.keys(perTipe);
             if (keys.length === 0) return '<div class="text-slate-400">Belum ada di periode ini.</div>';
             return keys.map(t => `<div class="flex justify-between"><span>${t}</span><span class="font-semibold">${perTipe[t]} outlet</span></div>`).join('');
+        }
+
+        // Gabungkan baris kredit per outlet: nominal dijumlahkan, "hari" diambil dari yang paling mendesak
+        // (paling telat untuk daftar telat, paling dekat untuk daftar akan jatuh tempo).
+        function gabungKreditPerOutlet(items) {
+            const peta = {};
+            (items || []).forEach(it => {
+                const g = peta[it.outlet] || (peta[it.outlet] = { outlet: it.outlet, nominal: 0, hari: it.hari });
+                g.nominal += Number(it.nominal) || 0;
+                if (it.hari < g.hari) g.hari = it.hari;
+            });
+            return Object.values(peta).sort((a, b) => a.hari - b.hari);
         }
 
         function renderList(containerId, items, templateFn, emptyMsg) {
