@@ -496,6 +496,8 @@
                     </div>
                 </div>
 
+                <input type="search" id="riwayat_cari" oninput="renderRiwayat()" placeholder="🔍 Cari outlet, item, sales, atau Order ID..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs mb-4">
+
                 <div id="riwayat-loading" class="hidden text-xs text-slate-400 text-center py-8">Memuat riwayat...</div>
                 <div id="riwayat-kosong" class="hidden text-xs text-slate-400 text-center py-8">Tidak ada transaksi pada rentang & filter ini.</div>
 
@@ -662,7 +664,10 @@
                 <!-- Belum ada nota dibawa -> tampilkan daftar Sisa Kredit buat dicentang -->
                 <div id="nota-pilih-wrapper" class="hidden">
                     <label class="block text-[10px] font-bold uppercase text-slate-600 mb-2">Pilih Nota yang Dibawa (dari Sisa Kredit Belum Lunas)</label>
+                    <input type="search" id="nota_cari" oninput="filterNotaPilih()" placeholder="🔍 Cari nama outlet..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs mb-2">
+                    <div class="flex justify-between items-center text-[11px] text-slate-500 mb-2"><span id="nota-info-pilih"></span><button type="button" onclick="kosongkanNotaPilih()" class="text-red-600 font-semibold">Kosongkan centang</button></div>
                     <div id="nota-pilih-list" class="space-y-2 mb-3"></div>
+                    <p id="nota-cari-kosong" class="hidden text-xs text-slate-400 text-center py-3">Tidak ada outlet yang cocok.</p>
                     <button onclick="simpanNotaDibawa()" id="nota-simpan-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-sm">
                         Simpan Nota Dibawa
                     </button>
@@ -1788,35 +1793,49 @@
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=riwayat_transaksi&start_date=${start}&end_date=${end}&metode_bayar=${metode}`)
                 .then(result => {
                     document.getElementById('riwayat-loading').classList.add('hidden');
-                    if (result.status !== 'success' || result.daftar.length === 0) {
-                        document.getElementById('riwayat-kosong').classList.remove('hidden');
-                        return;
-                    }
-
-                    const totalSemua = result.daftar.reduce((s, o) => s + o.grand_total, 0);
-                    document.getElementById('riwayat-jumlah-info').innerText = `${result.daftar.length} transaksi`;
-                    document.getElementById('riwayat-total-info').innerText = 'Total: ' + rupiah(totalSemua);
-
-                    document.getElementById('riwayat-tabel-body').innerHTML = result.daftar.map(o => {
-                        const items = o.items.map(it => `${it.item} (${it.qty})`).join(', ');
-                        const badge = o.metode_bayar === 'Cash'
-                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
-                            : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
-                        const statusBadge = o.status_pengiriman === 'Menunggu Kirim'
-                            ? ' <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px]">Menunggu Kirim</span>' : '';
-                        return `
-                            <tr class="border-b border-slate-100">
-                                <td class="p-2 text-slate-500">${o.tanggal}</td>
-                                <td class="p-2 font-medium">${o.outlet_name}${statusBadge}</td>
-                                <td class="p-2 text-slate-500">${items}</td>
-                                <td class="p-2 text-center">${badge}</td>
-                                <td class="p-2 text-right font-semibold">${rupiah(o.grand_total)}</td>
-                            </tr>
-                        `;
-                    }).join('');
-
-                    document.getElementById('riwayat-wrapper').classList.remove('hidden');
+                    daftarRiwayat = (result.status === 'success' && result.daftar) ? result.daftar : [];
+                    renderRiwayat();
                 });
+        }
+
+        // Pencarian jalan di data yang sudah dimuat (tanpa minta ke server lagi)
+        let daftarRiwayat = [];
+        function renderRiwayat() {
+            const q = (document.getElementById('riwayat_cari').value || '').trim().toLowerCase();
+            const cocok = q ? daftarRiwayat.filter(o =>
+                [o.outlet_name, o.order_id, o.sales_rep, o.metode_bayar, o.items.map(it => it.item).join(' ')]
+                    .join(' ').toLowerCase().includes(q)) : daftarRiwayat;
+
+            document.getElementById('riwayat-wrapper').classList.add('hidden');
+            const kosong = document.getElementById('riwayat-kosong');
+            if (cocok.length === 0) {
+                kosong.innerText = q ? `Tidak ada transaksi yang cocok dengan "${document.getElementById('riwayat_cari').value.trim()}".` : 'Tidak ada transaksi pada rentang & filter ini.';
+                kosong.classList.remove('hidden');
+                return;
+            }
+            kosong.classList.add('hidden');
+
+            const totalSemua = cocok.reduce((s, o) => s + o.grand_total, 0);
+            document.getElementById('riwayat-jumlah-info').innerText = q ? `${cocok.length} dari ${daftarRiwayat.length} transaksi` : `${cocok.length} transaksi`;
+            document.getElementById('riwayat-total-info').innerText = 'Total: ' + rupiah(totalSemua);
+
+            document.getElementById('riwayat-tabel-body').innerHTML = cocok.map(o => {
+                const items = o.items.map(it => `${escOwner(it.item)} (${it.qty})`).join(', ');
+                const badge = o.metode_bayar === 'Cash'
+                    ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
+                    : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
+                const statusBadge = o.status_pengiriman === 'Menunggu Kirim'
+                    ? ' <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px]">Menunggu Kirim</span>' : '';
+                return `
+                    <tr class="border-b border-slate-100">
+                        <td class="p-2 text-slate-500">${escOwner(o.tanggal)}</td>
+                        <td class="p-2 font-medium">${escOwner(o.outlet_name)}${statusBadge}</td>
+                        <td class="p-2 text-slate-500">${items}</td>
+                        <td class="p-2 text-center">${badge}</td>
+                        <td class="p-2 text-right font-semibold">${rupiah(o.grand_total)}</td>
+                    </tr>`;
+            }).join('');
+            document.getElementById('riwayat-wrapper').classList.remove('hidden');
         }
 
         // ============ TAB: NOTA KREDIT FISIK ============
@@ -1877,18 +1896,39 @@
                                         document.getElementById('nota-pilih-list').innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Tidak ada outlet dengan Sisa Kredit saat ini.</p>';
                                     } else {
                                         document.getElementById('nota-pilih-list').innerHTML = punyaKredit.map(h => `
-                                            <label class="flex items-center gap-2 border border-slate-200 rounded-xl p-2.5 cursor-pointer">
-                                                <input type="checkbox" class="nota-checkbox" data-order-id="${h.sisa.rincian[0].order_id}" data-outlet-name="${h.outlet.name}" data-nominal="${h.sisa.total_sisa}">
-                                                <span class="flex-grow text-xs font-medium">${h.outlet.name}</span>
+                                            <label class="nota-item flex items-center gap-2 border border-slate-200 rounded-xl p-2.5 cursor-pointer" data-nama="${escOwner(String(h.outlet.name).toLowerCase())}">
+                                                <input type="checkbox" class="nota-checkbox" onchange="filterNotaPilih()" data-order-id="${h.sisa.rincian[0].order_id}" data-outlet-name="${escOwner(h.outlet.name)}" data-nominal="${h.sisa.total_sisa}">
+                                                <span class="flex-grow text-xs font-medium">${escOwner(h.outlet.name)}</span>
                                                 <span class="text-xs text-slate-500">${rupiah(h.sisa.total_sisa)}</span>
                                             </label>
                                         `).join('');
                                     }
+                                    document.getElementById('nota_cari').value = '';
+                                    filterNotaPilih();
                                     document.getElementById('nota-pilih-wrapper').classList.remove('hidden');
                                 });
                             });
                     }
                 });
+        }
+
+        // Pencarian cuma menyembunyikan baris; centang tetap tersimpan walau barisnya tersembunyi
+        function filterNotaPilih() {
+            const q = (document.getElementById('nota_cari').value || '').trim().toLowerCase();
+            let tampil = 0;
+            document.querySelectorAll('#nota-pilih-list .nota-item').forEach(el => {
+                const cocok = !q || el.dataset.nama.includes(q);
+                el.classList.toggle('hidden', !cocok);
+                if (cocok) tampil++;
+            });
+            const total = document.querySelectorAll('#nota-pilih-list .nota-item').length;
+            document.getElementById('nota-cari-kosong').classList.toggle('hidden', !(total > 0 && tampil === 0));
+            const dipilih = document.querySelectorAll('.nota-checkbox:checked').length;
+            document.getElementById('nota-info-pilih').innerText = `${dipilih} nota dipilih dari ${total} outlet`;
+        }
+        function kosongkanNotaPilih() {
+            document.querySelectorAll('.nota-checkbox').forEach(c => { c.checked = false; });
+            filterNotaPilih();
         }
 
         function updateStatusNotaKlik(row, status) {
