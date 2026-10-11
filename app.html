@@ -124,6 +124,16 @@
                     </div>
                 </button>
 
+                <button onclick="showView('retur')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-violet-400 transition">
+                    <div class="bg-violet-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-900">Retur Produk</div>
+                        <div class="text-xs text-slate-500">Pelanggan mengembalikan atau menukar barang</div>
+                    </div>
+                </button>
+
                 <button onclick="showView('pengeluaran')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4 text-left hover:border-orange-400 transition">
                     <div class="bg-orange-100 p-3 rounded-xl">
                         <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -368,6 +378,7 @@
                             <div class="flex justify-between"><span>Cash dari pengantaran barang</span><span id="ls-cash-order">Rp 0</span></div>
                             <div class="flex justify-between"><span>+ Penagihan kredit (Cash)</span><span id="ls-tagih-cash">Rp 0</span></div>
                             <div class="flex justify-between"><span>− Pengeluaran</span><span id="ls-keluar">Rp 0</span></div>
+                            <div class="flex justify-between"><span>− Uang kembali retur</span><span id="ls-retur-uang">Rp 0</span></div>
                         </div>
                     </div>
 
@@ -385,6 +396,17 @@
                     <div id="ls-pengeluaran-wrapper" class="hidden">
                         <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Pengeluaran</h3>
                         <div id="ls-pengeluaran-list" class="space-y-2"></div>
+                    </div>
+
+                    <div id="ls-retur-wrapper" class="hidden">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Retur</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Yang sudah disetujui owner pada tanggal ini. Uang kembali ke pelanggan mengurangi setoran.</p>
+                        <div id="ls-retur-list" class="space-y-2"></div>
+                    </div>
+                    <div id="ls-retur-menunggu-wrapper" class="hidden">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Retur Menunggu Persetujuan</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Belum mengurangi setoran. Serahkan barangnya ke depo supaya owner bisa menyetujui.</p>
+                        <div id="ls-retur-menunggu-list" class="space-y-2"></div>
                     </div>
 
                     <!-- CLOSING: performa -->
@@ -477,6 +499,55 @@
                         <span id="bk-submit-text">Simpan Pembayaran</span>
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- ============ VIEW: RETUR PRODUK ============ -->
+        <div id="view-retur" class="view">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Retur Produk</h2>
+
+                <div class="space-y-3.5">
+                    <div class="relative">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Outlet *</label>
+                        <input type="text" id="rt_outlet_search" autocomplete="off" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Ketik nama outlet...">
+                        <div id="rt_outlet_suggestions" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
+                        <select id="rt_outlet_select" class="hidden">
+                            <option value="">-- Memuat daftar outlet... --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sales Rep *</label>
+                        <input type="text" id="rt_sales_rep" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm" placeholder="Nama Anda">
+                        <button type="button" onclick="gantiSalesRep('rt')" id="rt-ganti-nama-btn" class="hidden text-[10px] text-violet-600 font-semibold mt-1">Ganti nama</button>
+                    </div>
+
+                    <div class="bg-violet-50 border border-violet-200 rounded-xl p-3 text-[11px] text-violet-800 leading-relaxed">
+                        Retur baru berlaku setelah <b>disetujui owner</b> (saat barang sampai di depo). Barang retur <b>jangan dihitung</b> di sisa fisik stok sore, langsung serahkan ke depo.
+                    </div>
+
+                    <div id="rt-order-loading" class="hidden text-xs text-slate-400 text-center py-6">Memuat order outlet ini...</div>
+                    <div id="rt-order-kosong" class="hidden text-xs text-slate-400 text-center py-6">Outlet ini belum punya order yang sudah terkirim.</div>
+                    <div id="rt-order-wrapper" class="hidden">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Pilih Order yang Diretur *</label>
+                        <div id="rt-order-list" class="space-y-2"></div>
+                    </div>
+
+                    <div id="rt-form-wrapper" class="hidden space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Jenis Retur *</label>
+                            <select id="rt_cara" onchange="hitungRingkasRetur()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white">
+                                <option value="Retur">Retur biasa (barang diambil kembali)</option>
+                                <option value="Tukar Guling">Tukar guling (diganti produk lain)</option>
+                            </select>
+                        </div>
+                        <div id="rt-ringkas" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 space-y-1"></div>
+                        <button type="button" id="rt-submit-btn" onclick="submitRetur()" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-md">
+                            <span id="rt-submit-text">Ajukan Retur</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -685,6 +756,7 @@
         <div id="view-order" class="view">
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b">Form Order</h2>
+                <div id="order-pengganti-banner" class="hidden bg-violet-50 border border-violet-200 rounded-xl p-3 mb-3 text-[11px] text-violet-800 leading-relaxed"></div>
 
                 <form id="order-form" class="space-y-3.5">
                     <div class="relative">
@@ -891,8 +963,8 @@
             document.getElementById('view-' + name).classList.add('active');
             document.getElementById('back-btn').classList.remove('hidden');
 
-            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Penutupan', bulanan: 'Progres Bulanan', kirim: 'Konfirmasi Pengiriman' };
-            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Harus disetor & rincian closing', bulanan: 'Pilih bulan untuk lihat progres', kirim: 'Selesaikan order yang menunggu diantar' };
+            const titles = { outlet: 'Outlet Master', visit: 'Visit Log', order: 'Form Order', bayarkredit: 'Bayar Kredit', pengeluaran: 'Catat Pengeluaran', laporan: 'Laporan Penutupan', bulanan: 'Progres Bulanan', kirim: 'Konfirmasi Pengiriman', retur: 'Retur Produk' };
+            const subs = { outlet: 'Daftarkan outlet baru', visit: 'Catat kunjungan outlet', order: 'Catat transaksi order', bayarkredit: 'Catat pelunasan / cicilan kredit', pengeluaran: 'BBM, parkir, retribusi, dll', laporan: 'Harus disetor & rincian closing', bulanan: 'Pilih bulan untuk lihat progres', kirim: 'Selesaikan order yang menunggu diantar', retur: 'Pelanggan mengembalikan atau menukar barang' };
             document.getElementById('header-title').innerText = titles[name];
             document.getElementById('header-sub').innerText = subs[name];
 
@@ -903,7 +975,7 @@
                 }
                 loadMasterData();
             }
-            if ((name === 'visit' || name === 'order' || name === 'bayarkredit') && allOutlets.length === 0) {
+            if ((name === 'visit' || name === 'order' || name === 'bayarkredit' || name === 'retur') && allOutlets.length === 0) {
                 loadOutlets();
             }
             loadSavedSalesRep();
@@ -911,6 +983,7 @@
             if (name === 'laporan') loadLaporanSaya();
             if (name === 'bulanan') { isiDropdownBulan(); loadBulanProgress(); }
             if (name === 'kirim') { batalKonfirmasiKirim(); loadMenungguKirim(); }
+            if (name === 'order') tampilkanBannerPengganti();
         }
 
         // Ambil daftar pilihan dropdown (Tipe Outlet, Kategori, Status, dll) dari sheet MASTER DATA
@@ -1075,7 +1148,7 @@
         function loadSavedSalesRep() {
             const savedName = localStorage.getItem('sinar77_sales_rep');
             if (!savedName) return;
-            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep', 'bk_sales_rep', 'peng_sales_rep'].forEach(id => {
+            ['outlet_sales_rep', 'visit_sales_rep', 'order_sales_rep', 'bk_sales_rep', 'rt_sales_rep', 'peng_sales_rep'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input && !input.value) {
                     input.value = savedName;
@@ -1087,6 +1160,8 @@
             const o = document.getElementById('order-ganti-nama-btn');
             const bk = document.getElementById('bk-ganti-nama-btn');
             const peng = document.getElementById('peng-ganti-nama-btn');
+            const rtBtn = document.getElementById('rt-ganti-nama-btn');
+            if (rtBtn) rtBtn.classList.remove('hidden');
             if (v) v.classList.remove('hidden');
             if (o) o.classList.remove('hidden');
             if (bk) bk.classList.remove('hidden');
@@ -1094,7 +1169,7 @@
         }
 
         function gantiSalesRep(ctx) {
-            const idMap = { visit: 'visit_sales_rep', order: 'order_sales_rep', bk: 'bk_sales_rep', peng: 'peng_sales_rep' };
+            const idMap = { visit: 'visit_sales_rep', order: 'order_sales_rep', bk: 'bk_sales_rep', rt: 'rt_sales_rep', peng: 'peng_sales_rep' };
             const input = document.getElementById(idMap[ctx] || 'order_sales_rep');
             input.readOnly = false;
             input.classList.remove('bg-slate-50');
@@ -1206,6 +1281,7 @@
                     renderOutletOptions(allOutlets, 'visit_outlet_select');
                     renderOutletOptions(allOutlets, 'order_outlet_select');
                     renderOutletOptions(allOutlets, 'bk_outlet_select');
+                    renderOutletOptions(allOutlets, 'rt_outlet_select');
                     refreshSuggestionsAfterLoad();
                     return;
                 }
@@ -1221,6 +1297,7 @@
                         renderOutletOptions(allOutlets, 'visit_outlet_select');
                         renderOutletOptions(allOutlets, 'order_outlet_select');
                         renderOutletOptions(allOutlets, 'bk_outlet_select');
+                        renderOutletOptions(allOutlets, 'rt_outlet_select');
                         refreshSuggestionsAfterLoad(); // kalau user sudah mulai ngetik sebelum data ini selesai dimuat, cari ulang otomatis sekarang
                     }
                 })
@@ -1241,6 +1318,10 @@
             }
             if (bkInput && bkInput.value.trim()) {
                 renderSuggestions(cariOutlet(bkInput.value), 'bk_outlet_suggestions', 'bk_outlet_search', 'bk_outlet_select');
+            }
+            const rtInput = document.getElementById('rt_outlet_search');
+            if (rtInput && rtInput.value.trim()) {
+                renderSuggestions(cariOutlet(rtInput.value), 'rt_outlet_suggestions', 'rt_outlet_search', 'rt_outlet_select');
             }
         }
 
@@ -1365,6 +1446,16 @@
             }
             renderSuggestions(cariOutlet(e.target.value), 'bk_outlet_suggestions', 'bk_outlet_search', 'bk_outlet_select');
         });
+        document.getElementById('rt_outlet_search').addEventListener('input', function(e) {
+            if (!e.target.value.trim()) { document.getElementById('rt_outlet_suggestions').classList.add('hidden'); return; }
+            if (allOutlets.length === 0) {
+                const c = document.getElementById('rt_outlet_suggestions');
+                c.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">Memuat daftar outlet, sebentar...</div>';
+                c.classList.remove('hidden');
+                return;
+            }
+            renderSuggestions(cariOutlet(e.target.value), 'rt_outlet_suggestions', 'rt_outlet_search', 'rt_outlet_select');
+        });
         // Tutup daftar sugesti kalau user klik di luar area input/sugesti
         document.addEventListener('click', function(e) {
             if (!e.target.closest('#visit_outlet_search') && !e.target.closest('#visit_outlet_suggestions')) {
@@ -1376,7 +1467,165 @@
             if (!e.target.closest('#bk_outlet_search') && !e.target.closest('#bk_outlet_suggestions')) {
                 document.getElementById('bk_outlet_suggestions').classList.add('hidden');
             }
+            if (!e.target.closest('#rt_outlet_search') && !e.target.closest('#rt_outlet_suggestions')) {
+                document.getElementById('rt_outlet_suggestions').classList.add('hidden');
+            }
         });
+
+        // ============ RETUR PRODUK ============
+        let rtOrders = [];            // order outlet terpilih yang bisa diretur
+        let rtOrderTerpilih = null;   // Order ID yang sedang diisi
+        let clientReturId = null;
+        let penggantiRetur = null;    // { id, outlet_id, outlet_name, nilai } -> order berikutnya = pengganti tukar guling (tanpa bonus)
+        function ambilClientReturId() {
+            if (!clientReturId) clientReturId = 'RTR' + Date.now() + Math.floor(10 + Math.random() * 90);
+            return clientReturId;
+        }
+
+        document.getElementById('rt_outlet_select').addEventListener('change', function(e) {
+            const outletId = e.target.value;
+            rtOrders = []; rtOrderTerpilih = null; clientReturId = null;
+            document.getElementById('rt-order-wrapper').classList.add('hidden');
+            document.getElementById('rt-form-wrapper').classList.add('hidden');
+            document.getElementById('rt-order-kosong').classList.add('hidden');
+            if (!outletId) return;
+            const loading = document.getElementById('rt-order-loading');
+            loading.classList.remove('hidden');
+            fetch(`${APPS_SCRIPT_URL}?action=order_outlet_retur&outlet_id=${encodeURIComponent(outletId)}`)
+                .then(res => res.json())
+                .then(result => {
+                    loading.classList.add('hidden');
+                    if (result.status !== 'success') { showModal('Gagal', 'Gagal memuat order: ' + (result.message || '')); return; }
+                    rtOrders = result.orders.filter(o => o.items.some(i => i.bisa_diretur > 0));
+                    if (rtOrders.length === 0) { document.getElementById('rt-order-kosong').classList.remove('hidden'); return; }
+                    renderOrderRetur();
+                    document.getElementById('rt-order-wrapper').classList.remove('hidden');
+                })
+                .catch(() => { loading.classList.add('hidden'); showModal('Gagal', 'Koneksi error saat memuat order. Coba lagi.'); });
+        });
+
+        function renderOrderRetur() {
+            document.getElementById('rt-order-list').innerHTML = rtOrders.map(o => {
+                const aktif = o.order_id === rtOrderTerpilih;
+                const kredit = o.metode_bayar === 'Kredit';
+                const head = `<div class="flex justify-between items-center gap-2">
+                        <span class="text-xs text-slate-500">${escApp(o.tanggal)} • ${escApp(o.sales_closing)}</span>
+                        <span class="flex items-center gap-1 shrink-0">${badgeMetodeApp(o.metode_bayar)}</span>
+                    </div>
+                    <div class="flex justify-between text-xs mt-1"><span class="text-slate-500">Total order</span><span class="font-semibold">${rpApp(o.grand_total)}</span></div>
+                    ${kredit ? `<div class="flex justify-between text-xs"><span class="text-slate-500">Sisa tagihan</span><span class="font-semibold ${o.sisa_kredit > 0 ? 'text-rose-600' : 'text-emerald-600'}">${rpApp(o.sisa_kredit)}</span></div>` : ''}`;
+                if (!aktif) {
+                    return `<div class="border border-slate-200 rounded-xl p-3 cursor-pointer hover:border-violet-400" onclick="pilihOrderRetur('${escApp(o.order_id)}')">
+                        ${head}
+                        <div class="text-[11px] text-slate-500 mt-1">${o.items.map(i => escApp(i.produk) + ' ' + i.qty).join(', ')}</div>
+                        <div class="text-[11px] text-violet-600 font-semibold mt-1">Ketuk untuk retur dari order ini</div>
+                    </div>`;
+                }
+                return `<div class="border-2 border-violet-400 rounded-xl p-3 bg-violet-50/40">
+                    ${head}
+                    <div class="mt-2 space-y-2">${o.items.map((i, idx) => i.bisa_diretur <= 0
+                        ? `<div class="text-[11px] text-slate-400">${escApp(i.produk)}: sudah habis diretur</div>`
+                        : `<div class="bg-white border border-slate-200 rounded-lg p-2.5 space-y-1.5">
+                            <div class="flex justify-between text-xs gap-2"><span class="font-semibold min-w-0">${escApp(i.produk)}</span><span class="text-slate-500 shrink-0">${rpApp(i.harga_efektif)} / unit</span></div>
+                            <div class="text-[10px] text-slate-400">Dibeli ${i.qty}${i.sudah_diretur > 0 ? ` • sudah/sedang diretur ${i.sudah_diretur}` : ''} • bisa diretur ${i.bisa_diretur}</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="rt_qty_${idx}" min="0" max="${i.bisa_diretur}" step="any" oninput="hitungRingkasRetur()" placeholder="Jumlah retur" class="px-2.5 py-2 border border-slate-300 rounded-lg text-sm">
+                                <select id="rt_kond_${idx}" onchange="hitungRingkasRetur()" class="px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white"><option value="Layak">Layak jual</option><option value="Tidak Layak">Tidak layak jual</option></select>
+                            </div>
+                            <input type="text" id="rt_alasan_${idx}" placeholder="Alasan (opsional)" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-xs">
+                        </div>`).join('')}</div>
+                    <button type="button" onclick="pilihOrderRetur(null)" class="text-[10px] text-slate-500 font-semibold mt-2">Pilih order lain</button>
+                </div>`;
+            }).join('');
+        }
+
+        function pilihOrderRetur(id) {
+            rtOrderTerpilih = id;
+            renderOrderRetur();
+            document.getElementById('rt-form-wrapper').classList.toggle('hidden', !id);
+            if (id) hitungRingkasRetur();
+        }
+
+        // Hitung perkiraan dampak retur supaya sales paham sebelum mengajukan (angka resmi dihitung server saat disetujui).
+        function bacaItemRetur() {
+            const o = rtOrders.find(x => x.order_id === rtOrderTerpilih);
+            if (!o) return { order: null, items: [], nilai: 0 };
+            const items = []; let nilai = 0;
+            o.items.forEach((i, idx) => {
+                const el = document.getElementById('rt_qty_' + idx);
+                const qty = el ? Number(el.value) || 0 : 0;
+                if (qty <= 0) return;
+                items.push({ produk: i.produk, qty, kondisi: document.getElementById('rt_kond_' + idx).value, alasan: document.getElementById('rt_alasan_' + idx).value.trim(), harga: i.harga_efektif, max: i.bisa_diretur });
+                nilai += Math.round(i.harga_efektif * qty);
+            });
+            return { order: o, items, nilai };
+        }
+
+        function hitungRingkasRetur() {
+            const box = document.getElementById('rt-ringkas');
+            if (!rtOrderTerpilih) { box.innerHTML = ''; return; }
+            const { order, items, nilai } = bacaItemRetur();
+            if (items.length === 0) { box.innerHTML = '<div class="text-slate-400">Isi jumlah retur pada produk yang dikembalikan.</div>'; return; }
+            const tukar = document.getElementById('rt_cara').value === 'Tukar Guling';
+            let html = `<div class="flex justify-between"><span>Nilai barang diretur</span><b>${rpApp(nilai)}</b></div>`;
+            if (order.metode_bayar === 'Kredit') {
+                const potong = Math.min(nilai, order.sisa_kredit), kembali = nilai - potong;
+                html += `<div class="flex justify-between"><span>Tagihan pelanggan berkurang</span><b>${rpApp(potong)}</b></div>`;
+                if (kembali > 0) html += `<div class="flex justify-between text-amber-700"><span>Sudah dibayar pelanggan, ${tukar ? 'dipakai untuk order pengganti' : 'dikembalikan oleh sales'}</span><b>${rpApp(kembali)}</b></div>`;
+            } else {
+                html += `<div class="flex justify-between text-amber-700"><span>${tukar ? 'Dianggap sudah dibayar untuk order pengganti' : 'Uang pelanggan dikembalikan oleh sales'}</span><b>${rpApp(nilai)}</b></div>`;
+            }
+            if (items.some(i => i.kondisi === 'Tidak Layak')) html += '<div class="text-[10px] text-slate-500">Barang tidak layak jual tidak masuk stok depo (kerugian perusahaan).</div>';
+            if (tukar) html += '<div class="text-[10px] text-slate-500">Setelah diajukan, buat order pengganti lewat Form Order. Order pengganti tidak dihitung bonus.</div>';
+            box.innerHTML = html;
+        }
+
+        function submitRetur() {
+            const sel = document.getElementById('rt_outlet_select');
+            const outletId = sel.value;
+            const outletName = sel.options[sel.selectedIndex]?.dataset.name || '';
+            const salesRep = document.getElementById('rt_sales_rep').value.trim();
+            if (!outletId) { showModal('Gagal', 'Pilih outlet dulu.'); return; }
+            if (!salesRep) { showModal('Gagal', 'Sales Rep wajib diisi.'); return; }
+            const { order, items, nilai } = bacaItemRetur();
+            if (!order) { showModal('Gagal', 'Pilih order yang diretur.'); return; }
+            if (items.length === 0) { showModal('Gagal', 'Isi jumlah retur minimal pada 1 produk.'); return; }
+            const lebih = items.find(i => i.qty > i.max + 1e-9);
+            if (lebih) { showModal('Gagal', `Retur ${lebih.produk} melebihi jumlah yang bisa diretur (${lebih.max}).`); return; }
+            const cara = document.getElementById('rt_cara').value;
+
+            const btn = document.getElementById('rt-submit-btn'), txt = document.getElementById('rt-submit-text');
+            btn.disabled = true; txt.innerText = 'Mengirim...';
+            postDenganRetry({
+                form_type: 'retur', client_id: ambilClientReturId(), order_id: order.order_id, sales_rep: salesRep, cara,
+                items: items.map(i => ({ produk: i.produk, qty: i.qty, kondisi: i.kondisi, alasan: i.alasan }))
+            }).then(result => {
+                btn.disabled = false; txt.innerText = 'Ajukan Retur';
+                if (result.status !== 'success') { showModal('Gagal', 'Error: ' + result.message); return; }
+                const returId = result.retur_id;
+                clientReturId = null;
+                simpanSalesRep(salesRep);
+                if (cara === 'Tukar Guling') penggantiRetur = { id: returId, outlet_id: outletId, outlet_name: outletName, nilai: result.total_nilai || nilai };
+                showModal('Retur Diajukan', `Retur senilai ${rpApp(result.total_nilai || nilai)} tercatat dan menunggu persetujuan owner. Serahkan barang ke depo.` + (cara === 'Tukar Guling' ? ' Sekarang buat order pengganti lewat menu Form Order.' : ''));
+                rtOrderTerpilih = null; rtOrders = [];
+                document.getElementById('rt_outlet_search').value = '';
+                document.getElementById('rt_outlet_select').value = '';
+                document.getElementById('rt-order-wrapper').classList.add('hidden');
+                document.getElementById('rt-form-wrapper').classList.add('hidden');
+                document.getElementById('rt-ringkas').innerHTML = '';
+            }).catch(err => { btn.disabled = false; txt.innerText = 'Ajukan Retur'; showModal('Gagal', 'Koneksi error: ' + err.message); });
+        }
+
+        // Banner di Form Order kalau order ini pengganti tukar guling
+        function tampilkanBannerPengganti() {
+            let b = document.getElementById('order-pengganti-banner');
+            if (!b) return;
+            if (!penggantiRetur) { b.classList.add('hidden'); return; }
+            b.innerHTML = `<div class="font-bold mb-0.5">Order pengganti tukar guling (${escApp(penggantiRetur.outlet_name)})</div>
+                Catat order seperti biasa dengan harga penuh. Order ini tidak dihitung bonus. Retur senilai ${rpApp(penggantiRetur.nilai)} dianggap sudah dibayar pelanggan, jadi pilih metode <b>Cash</b> kalau barang lama dibeli tunai.
+                <button type="button" onclick="penggantiRetur = null; tampilkanBannerPengganti();" class="block text-[10px] text-violet-700 font-semibold mt-1">Ini bukan order pengganti</button>`;
+            b.classList.remove('hidden');
+        }
 
         // ============ BAYAR KREDIT ============
         function labelStatusKredit(status) {
@@ -2060,7 +2309,8 @@
                 grand_total: grandTotal,
                 metode_bayar: document.getElementById('metode_bayar').value,
                 gps_checkin: gpsCheckin,
-                langsung_serah: document.getElementById('langsung_serah').value
+                langsung_serah: document.getElementById('langsung_serah').value,
+                pengganti_retur_id: (penggantiRetur && penggantiRetur.outlet_id === outletId) ? penggantiRetur.id : ''
             };
 
             const btn = document.getElementById('order-submit-btn');
@@ -2072,6 +2322,7 @@
                     btn.disabled = false; txt.innerText = 'Simpan Order';
                     if (result.status === 'success') {
                         clientOrderId = null; // order ini sudah pasti tersimpan — order BERIKUTNYA butuh ID baru
+                        if (newOrder.pengganti_retur_id) { penggantiRetur = null; tampilkanBannerPengganti(); }
                         simpanSalesRep(salesRep);
                         if (result.status_pengiriman === 'Menunggu Kirim') {
                             showModal('Tersimpan', `Order tercatat sebagai MENUNGGU KIRIM. Stok & pembayaran belum final — nanti selesaikan lewat menu "Konfirmasi Pengiriman" saat barang benar-benar diantar.`);
@@ -2222,7 +2473,7 @@
                         return;
                     }
                     const kas = result.kas;
-                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0;
+                    const adaKas = kas.pengantaran.length > 0 || kas.penagihan.length > 0 || kas.pengeluaran.length > 0 || (kas.retur || []).length > 0 || (kas.retur_menunggu || []).length > 0;
                     if (result.closings.length === 0 && !adaKas) {
                         kosong.innerText = teksKosong;
                         kosong.classList.remove('hidden');
@@ -2234,6 +2485,18 @@
                     document.getElementById('ls-cash-order').innerText = rpApp(kas.cash_order);
                     document.getElementById('ls-tagih-cash').innerText = rpApp(kas.penagihan_cash);
                     document.getElementById('ls-keluar').innerText = rpApp(kas.total_pengeluaran);
+                    document.getElementById('ls-retur-uang').innerText = rpApp(kas.retur_uang_kembali || 0);
+
+                    // ---- Retur ----
+                    const kartuRetur = (g, menunggu) => `<div class="${menunggu ? 'bg-amber-50' : 'bg-violet-50'} rounded-xl p-2.5 text-xs">
+                        <div class="flex justify-between items-center gap-2"><span class="font-medium min-w-0">${escApp(g.outlet_name)}</span><span class="font-semibold shrink-0">${rpApp(g.total_nilai)}</span></div>
+                        <div class="text-[10px] text-slate-500 mt-0.5">${g.items.map(it => `${escApp(it.produk)} ${it.qty} (${escApp(it.kondisi)})`).join(', ')}</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5">${g.cara === 'Tukar Guling' ? 'Tukar guling' : 'Retur'} • order ${escApp(g.metode_bayar)}${menunggu ? '' : ` • tagihan berkurang ${rpApp(g.potong_tagihan)} • uang kembali ${rpApp(g.uang_kembali)}`}</div>
+                    </div>`;
+                    const returWrap = document.getElementById('ls-retur-wrapper');
+                    if ((kas.retur || []).length > 0) { document.getElementById('ls-retur-list').innerHTML = kas.retur.map(g => kartuRetur(g, false)).join(''); returWrap.classList.remove('hidden'); } else returWrap.classList.add('hidden');
+                    const returMenWrap = document.getElementById('ls-retur-menunggu-wrapper');
+                    if ((kas.retur_menunggu || []).length > 0) { document.getElementById('ls-retur-menunggu-list').innerHTML = kas.retur_menunggu.map(g => kartuRetur(g, true)).join(''); returMenWrap.classList.remove('hidden'); } else returMenWrap.classList.add('hidden');
 
                     // ---- Kas: pengantaran ----
                     const pengWrap = document.getElementById('ls-pengantaran-wrapper');
