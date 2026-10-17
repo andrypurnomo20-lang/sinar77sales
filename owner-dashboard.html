@@ -39,6 +39,7 @@
             <button onclick="showTab('progres')" id="tab-btn-progres" class="tab-nav-btn shrink-0">🚶 Progres Sales</button>
             <button onclick="showTab('riwayat')" id="tab-btn-riwayat" class="tab-nav-btn shrink-0">🧾 Riwayat Transaksi</button>
             <button onclick="showTab('pelanggan')" id="tab-btn-pelanggan" class="tab-nav-btn shrink-0">👥 Pelanggan</button>
+            <button onclick="showTab('pengeluaran')" id="tab-btn-pengeluaran" class="tab-nav-btn shrink-0">💸 Pengeluaran</button>
             <button onclick="showTab('retur')" id="tab-btn-retur" class="tab-nav-btn shrink-0">↩️ Retur<span id="retur-badge" class="hidden ml-1 bg-red-500 text-white rounded-full px-1.5 text-[10px]"></span></button>
             <button onclick="showTab('setoran')" id="tab-btn-setoran" class="tab-nav-btn shrink-0">💵 Setoran Harian</button>
             <button onclick="showTab('stok')" id="tab-btn-stok" class="tab-nav-btn shrink-0">📦 Stok Harian</button>
@@ -91,7 +92,7 @@
             <section>
                 <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Posisi Kas (Semua Waktu)</h2>
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
                         <div class="bg-emerald-50 rounded-xl p-3">
                             <div class="text-[10px] text-emerald-700 uppercase">Pemasukan Cash</div>
                             <div class="text-sm font-bold text-emerald-800" id="kas-pemasukan-cash">Rp 0</div>
@@ -108,6 +109,10 @@
                             <div class="text-[10px] text-violet-700 uppercase">Uang Kembali Retur</div>
                             <div class="text-sm font-bold text-violet-800" id="kas-retur">Rp 0</div>
                         </div>
+                        <div class="bg-indigo-50 rounded-xl p-3">
+                            <div class="text-[10px] text-indigo-700 uppercase">Disetor ke Pusat</div>
+                            <div class="text-sm font-bold text-indigo-800" id="kas-setor">Rp 0</div>
+                        </div>
                         <div class="bg-slate-100 rounded-xl p-3">
                             <div class="text-[10px] text-slate-500 uppercase">Saldo Rekening</div>
                             <div class="text-sm font-bold text-slate-700" id="kas-rekening">Rp 0</div>
@@ -115,7 +120,7 @@
                     </div>
                     <div class="flex flex-col md:flex-row gap-3">
                         <div class="flex-1 bg-slate-800 rounded-xl p-3">
-                            <div class="text-[10px] text-slate-300 uppercase">Uang Fisik (Cash di Tangan)</div>
+                            <div class="text-[10px] text-slate-300 uppercase">Uang Fisik di Depo (Cash)</div>
                             <div class="text-lg font-extrabold text-white" id="kas-uang-fisik">Rp 0</div>
                         </div>
                         <div class="flex-1 bg-slate-900 rounded-xl p-3">
@@ -477,15 +482,15 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     <div>
                         <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Dari</label>
-                        <input type="date" id="riwayat_start" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+                        <input type="date" id="riwayat_start" onchange="loadRiwayatTransaksi()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
                     </div>
                     <div>
                         <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Sampai</label>
-                        <input type="date" id="riwayat_end" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+                        <input type="date" id="riwayat_end" onchange="loadRiwayatTransaksi()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
                     </div>
                     <div>
                         <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Metode Bayar</label>
-                        <select id="riwayat_metode" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <select id="riwayat_metode" onchange="loadRiwayatTransaksi()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                             <option value="Semua">Semua</option>
                             <option value="Cash">Cash</option>
                             <option value="Kredit">Kredit</option>
@@ -675,6 +680,70 @@
             </div>
         </div>
         <!-- ============ /TAB: PENGATURAN ============ -->
+
+        <!-- ============ TAB: PENGELUARAN & SETOR KE PUSAT ============ -->
+        <div id="tab-pengeluaran" class="tab-panel hidden">
+            <div class="space-y-4 max-w-4xl">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Catat pengeluaran owner -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Catat Pengeluaran Owner</h2>
+                        <p class="text-xs text-slate-500 -mt-1">Uang diambil dari <b>kas depo</b>. Tidak mengurangi setoran sales mana pun.</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Tanggal</label><input type="date" id="po_tanggal" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                            <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Kategori</label>
+                                <select id="po_kategori" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs bg-white"><option>BBM</option><option>Parkir</option><option>Retribusi</option><option>Lainnya</option></select></div>
+                        </div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Keterangan</label><input type="text" id="po_keterangan" placeholder="Untuk apa?" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Jumlah (Rp)</label><input type="number" inputmode="numeric" id="po_jumlah" placeholder="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-sm"></div>
+                        <button onclick="simpanPengeluaranOwner()" id="po-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-xl text-sm">Simpan Pengeluaran</button>
+                    </div>
+
+                    <!-- Setor ke pusat -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-indigo-200 space-y-3">
+                        <h2 class="text-sm font-bold text-indigo-800 uppercase tracking-wider">Setor ke Pusat</h2>
+                        <p class="text-xs text-slate-500 -mt-1">Catat uang tunai dari depo yang diserahkan ke kantor pusat.</p>
+                        <div class="bg-indigo-50 rounded-xl p-3 flex justify-between items-center">
+                            <span class="text-[10px] uppercase text-indigo-700 font-semibold">Uang fisik di depo sekarang</span>
+                            <span class="text-base font-extrabold text-indigo-900" id="sp-saldo-depo">-</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Tanggal</label><input type="date" id="sp_tanggal" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                            <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Jumlah (Rp)</label><input type="number" inputmode="numeric" id="sp_jumlah" placeholder="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-sm"></div>
+                        </div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Keterangan</label><input type="text" id="sp_keterangan" placeholder="Mis. diserahkan langsung / transfer" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                        <button onclick="simpanSetorPusat()" id="sp-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm">Simpan Setor ke Pusat</button>
+                        <div>
+                            <div class="flex justify-between text-[10px] uppercase font-semibold text-slate-500 mb-1"><span>Riwayat setor</span><span id="sp-total-semua"></span></div>
+                            <div id="sp-riwayat" class="space-y-1 max-h-48 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detail pengeluaran -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Detail Pengeluaran</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Dari</label><input type="date" id="pg_start" onchange="loadDetailPengeluaran()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Sampai</label><input type="date" id="pg_end" onchange="loadDetailPengeluaran()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs"></div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Sales</label><select id="pg_sales" onchange="loadDetailPengeluaran()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs bg-white"><option value="">Semua</option></select></div>
+                        <div><label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Kategori</label><select id="pg_kategori" onchange="loadDetailPengeluaran()" class="w-full px-2.5 py-2 border border-slate-300 rounded-xl text-xs bg-white"><option value="">Semua</option></select></div>
+                    </div>
+                    <input type="search" id="pg_cari" oninput="renderDetailPengeluaran()" placeholder="🔍 Cari keterangan, kategori, atau nama..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs">
+                    <div id="pg-loading" class="hidden text-xs text-slate-400 text-center py-6">Memuat...</div>
+                    <div id="pg-ringkasan" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div><h3 class="text-[10px] font-bold uppercase text-slate-500 mb-1">Per kategori</h3><div id="pg-per-kategori" class="space-y-1.5"></div></div>
+                        <div><h3 class="text-[10px] font-bold uppercase text-slate-500 mb-1">Per sales</h3><div id="pg-per-sales" class="space-y-1.5"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-500 mb-1"><span id="pg-info"></span><span id="pg-total" class="font-bold text-slate-800"></span></div>
+                        <div id="pg-daftar" class="space-y-1.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ============ /TAB: PENGELUARAN ============ -->
 
         <!-- ============ TAB: STOK HARIAN ============ -->
         <div id="tab-stok" class="tab-panel hidden">
@@ -996,7 +1065,7 @@
             document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + name).classList.remove('hidden');
 
-            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan', 'pelanggan', 'retur'].forEach(t => {
+            ['dashboard', 'progres', 'riwayat', 'setoran', 'stok', 'laporan', 'pengaturan', 'pelanggan', 'retur', 'pengeluaran'].forEach(t => {
                 document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
             });
 
@@ -1005,6 +1074,7 @@
             // Muat data tab ini SEKALI SAJA, saat pertama kali dibuka — bolak-balik pindah tab
             // setelahnya tidak fetch ulang, langsung pakai yang sudah ada di memori.
             if (name === 'progres' && !progresSudahDimuat) { progresSudahDimuat = true; loadProgresSalesHariIni(); }
+            if (name === 'pengeluaran') initPengeluaranTab();
             if (name === 'riwayat' && !riwayatSudahDimuat) { riwayatSudahDimuat = true; initRiwayatTab(); }
             if (name === 'setoran' && !setoranSudahDimuat) { setoranSudahDimuat = true; loadSalesListSetoran(); }
             if (name === 'stok' && !stokSudahDimuat) { stokSudahDimuat = true; initStokTab(); }
@@ -1449,6 +1519,151 @@
                 .catch(err => alert('Koneksi error: ' + err.message));
         }
 
+        // ============ PENGELUARAN OWNER, SETOR KE PUSAT, DETAIL PENGELUARAN ============
+        const NAMA_OWNER = 'Andry';   // pengeluaran owner dicatat atas nama ini (harus sama dengan NAMA_OWNER_ di Code.gs)
+        let daftarPengeluaran = [], pgPermintaanKe = 0, pgPilihanTerisi = false;
+        let clientPengOwner = null, clientSetorPusat = null;
+        const idUnik = awalan => awalan + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
+        function initPengeluaranTab() {
+            const hariIni = tglLokal(new Date());
+            if (!document.getElementById('po_tanggal').value) document.getElementById('po_tanggal').value = hariIni;
+            if (!document.getElementById('sp_tanggal').value) document.getElementById('sp_tanggal').value = hariIni;
+            if (!document.getElementById('pg_start').value) {
+                const t = new Date();
+                document.getElementById('pg_start').value = tglLokal(new Date(t.getFullYear(), t.getMonth(), 1));
+                document.getElementById('pg_end').value = hariIni;
+            }
+            tampilSaldoDepo();
+            loadDetailPengeluaran();
+            loadRiwayatSetorPusat();
+        }
+
+        function tampilSaldoDepo() {
+            document.getElementById('sp-saldo-depo').innerText = posisiKasTerakhir ? rupiah(posisiKasTerakhir.uang_fisik) : '-';
+        }
+
+        // Ambil ulang angka Posisi Kas tanpa mengganggu tampilan dashboard
+        function segarkanPosisiKas() {
+            const start = document.getElementById('start_date').value, end = document.getElementById('end_date').value;
+            return fetchDenganRetry(`${APPS_SCRIPT_URL}?action=owner_dashboard&start_date=${start}&end_date=${end}&_=${Date.now()}`)
+                .then(d => { if (d.status === 'success') { renderPosisiKas(d.posisi_kas); tampilSaldoDepo(); } })
+                .catch(() => { });
+        }
+
+        function kirimOwner(body) {
+            return fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(res => res.json());
+        }
+
+        function simpanPengeluaranOwner() {
+            const tanggal = document.getElementById('po_tanggal').value;
+            const kategori = document.getElementById('po_kategori').value;
+            const keterangan = document.getElementById('po_keterangan').value.trim();
+            const jumlah = Number(document.getElementById('po_jumlah').value);
+            if (!tanggal) { alert('Isi tanggal.'); return; }
+            if (!(jumlah > 0)) { alert('Jumlah harus lebih dari 0.'); return; }
+            if (kategori === 'Lainnya' && !keterangan) { alert('Kategori "Lainnya" wajib diisi keterangannya.'); return; }
+            if (!confirm(`Catat pengeluaran ${rupiah(jumlah)} (${kategori}) dari kas depo?`)) return;
+            if (!clientPengOwner) clientPengOwner = idUnik('POW-');
+            const btn = document.getElementById('po-btn'); btn.disabled = true; btn.innerText = 'Menyimpan...';
+            kirimOwner({ form_type: 'pengeluaran', client_id: clientPengOwner, sales_rep: NAMA_OWNER, tanggal, kategori, keterangan, jumlah, dicatat_oleh: 'Owner' })
+                .then(r => {
+                    btn.disabled = false; btn.innerText = 'Simpan Pengeluaran';
+                    if (r.status !== 'success') { alert('Gagal: ' + r.message); return; }
+                    clientPengOwner = null;
+                    document.getElementById('po_jumlah').value = ''; document.getElementById('po_keterangan').value = '';
+                    alert('Pengeluaran tersimpan.');
+                    loadDetailPengeluaran(); segarkanPosisiKas();
+                    // laporan & setoran sales berubah juga
+                    laporanSudahDimuat = false;
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Pengeluaran'; alert('Koneksi error: ' + err.message + '. Klik Simpan lagi untuk mencoba ulang (tidak akan tercatat dobel).'); });
+        }
+
+        function simpanSetorPusat() {
+            const tanggal = document.getElementById('sp_tanggal').value;
+            const jumlah = Number(document.getElementById('sp_jumlah').value);
+            const keterangan = document.getElementById('sp_keterangan').value.trim();
+            if (!tanggal) { alert('Isi tanggal.'); return; }
+            if (!(jumlah > 0)) { alert('Jumlah harus lebih dari 0.'); return; }
+            const saldo = posisiKasTerakhir ? posisiKasTerakhir.uang_fisik : null;
+            let teks = `Catat setor ${rupiah(jumlah)} ke pusat?`;
+            if (saldo !== null && jumlah > saldo) teks = `PERHATIAN: jumlah ${rupiah(jumlah)} lebih besar dari uang fisik di depo (${rupiah(saldo)}).\n\nTetap catat setor ke pusat?`;
+            if (!confirm(teks)) return;
+            if (!clientSetorPusat) clientSetorPusat = idUnik('SPU-');
+            const btn = document.getElementById('sp-btn'); btn.disabled = true; btn.innerText = 'Menyimpan...';
+            kirimOwner({ form_type: 'setor_pusat', client_id: clientSetorPusat, tanggal, jumlah, keterangan, dicatat_oleh: 'Owner' })
+                .then(r => {
+                    btn.disabled = false; btn.innerText = 'Simpan Setor ke Pusat';
+                    if (r.status !== 'success') { alert('Gagal: ' + r.message); return; }
+                    clientSetorPusat = null;
+                    document.getElementById('sp_jumlah').value = ''; document.getElementById('sp_keterangan').value = '';
+                    alert('Setor ke pusat tersimpan.');
+                    loadRiwayatSetorPusat(); segarkanPosisiKas();
+                })
+                .catch(err => { btn.disabled = false; btn.innerText = 'Simpan Setor ke Pusat'; alert('Koneksi error: ' + err.message + '. Klik Simpan lagi untuk mencoba ulang (tidak akan tercatat dobel).'); });
+        }
+
+        function loadRiwayatSetorPusat() {
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=daftar_setor_pusat&_=${Date.now()}`)
+                .then(r => {
+                    if (r.status !== 'success') return;
+                    document.getElementById('sp-total-semua').innerText = 'Total disetor: ' + rupiah(r.total_semua);
+                    document.getElementById('sp-riwayat').innerHTML = r.daftar.length === 0
+                        ? '<p class="text-xs text-slate-400 text-center py-2">Belum ada setoran ke pusat.</p>'
+                        : r.daftar.map(x => `<div class="flex justify-between gap-2 text-xs border border-slate-100 rounded-lg px-2.5 py-1.5"><span class="min-w-0"><span class="text-slate-400">${escOwner(x.tanggal)}</span>${x.keterangan ? ' — ' + escOwner(x.keterangan) : ''}</span><span class="font-bold text-indigo-700 shrink-0">${rupiah(x.jumlah)}</span></div>`).join('');
+                })
+                .catch(() => { });
+        }
+
+        function loadDetailPengeluaran() {
+            const start = document.getElementById('pg_start').value, end = document.getElementById('pg_end').value;
+            const sales = document.getElementById('pg_sales').value, kat = document.getElementById('pg_kategori').value;
+            const nomor = ++pgPermintaanKe;
+            document.getElementById('pg-loading').classList.remove('hidden');
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=daftar_pengeluaran&start_date=${start}&end_date=${end}&sales_rep=${encodeURIComponent(sales)}&kategori=${encodeURIComponent(kat)}`)
+                .then(r => {
+                    if (nomor !== pgPermintaanKe) return;
+                    document.getElementById('pg-loading').classList.add('hidden');
+                    if (r.status !== 'success') { document.getElementById('pg-info').innerText = 'Gagal memuat: ' + r.message; return; }
+                    // isi pilihan filter sekali, dari seluruh data pada rentang (bukan hasil yang sudah tersaring)
+                    if (!sales && !kat) {
+                        const isi = (id, arr) => { const el = document.getElementById(id), cur = el.value; el.innerHTML = '<option value="">Semua</option>' + arr.map(x => `<option value="${escOwner(x)}">${escOwner(x)}</option>`).join(''); el.value = cur; };
+                        isi('pg_sales', r.pilihan.sales); isi('pg_kategori', r.pilihan.kategori);
+                    }
+                    daftarPengeluaran = r.daftar;
+                    const t = r.ringkasan;
+                    const kotak = (l, v, w) => `<div class="${w} rounded-xl p-2.5"><div class="text-[9px] uppercase font-semibold text-slate-500">${l}</div><div class="text-sm font-extrabold text-slate-800">${v}</div></div>`;
+                    document.getElementById('pg-ringkasan').innerHTML =
+                        kotak('Total pengeluaran', rupiah(t.total), 'bg-orange-50') + kotak('Jumlah catatan', t.jumlah, 'bg-slate-50') +
+                        kotak('Rata-rata per hari', rupiah(t.rata_per_hari), 'bg-amber-50') + kotak('Pengeluaran owner', rupiah(t.total_owner), 'bg-indigo-50');
+                    const batang = (nama, total, jml, persen, tag) => `<div class="text-xs"><div class="flex justify-between"><span class="font-medium text-slate-700">${escOwner(nama)}${tag || ''} <span class="text-slate-400">(${jml}x)</span></span><span class="font-bold text-slate-800">${rupiah(total)}</span></div><div class="h-1.5 bg-slate-100 rounded-full mt-0.5"><div class="h-1.5 bg-orange-400 rounded-full" style="width:${persen}%"></div></div></div>`;
+                    const pers = v => t.total > 0 ? Math.max(2, Math.round(v / t.total * 100)) : 0;
+                    document.getElementById('pg-per-kategori').innerHTML = t.per_kategori.length ? t.per_kategori.map(k => batang(k.kategori, k.total, k.jumlah, pers(k.total))).join('') : '<p class="text-xs text-slate-400">-</p>';
+                    document.getElementById('pg-per-sales').innerHTML = t.per_sales.length ? t.per_sales.map(k => batang(k.sales_rep, k.total, k.jumlah, pers(k.total), k.owner ? ' <span class="bg-indigo-100 text-indigo-700 px-1.5 rounded text-[9px] font-semibold">owner</span>' : '')).join('') : '<p class="text-xs text-slate-400">-</p>';
+                    renderDetailPengeluaran();
+                })
+                .catch(err => { if (nomor !== pgPermintaanKe) return; document.getElementById('pg-loading').classList.add('hidden'); document.getElementById('pg-info').innerText = 'Koneksi error: ' + err.message; });
+        }
+
+        function renderDetailPengeluaran() {
+            const q = (document.getElementById('pg_cari').value || '').trim().toLowerCase();
+            const cocok = q ? daftarPengeluaran.filter(x => [x.sales_rep, x.kategori, x.keterangan, x.tanggal].join(' ').toLowerCase().includes(q)) : daftarPengeluaran;
+            document.getElementById('pg-info').innerText = q ? `${cocok.length} dari ${daftarPengeluaran.length} catatan` : `${cocok.length} catatan`;
+            document.getElementById('pg-total').innerText = 'Total: ' + rupiah(cocok.reduce((s, x) => s + x.jumlah, 0));
+            document.getElementById('pg-daftar').innerHTML = cocok.length === 0
+                ? '<p class="text-xs text-slate-400 text-center py-4">Tidak ada pengeluaran pada filter ini.</p>'
+                : cocok.map(x => `
+                    <div class="flex justify-between gap-2 border border-slate-200 rounded-xl px-3 py-2 text-xs">
+                        <div class="min-w-0">
+                            <div class="font-semibold text-slate-800">${escOwner(x.kategori)}${x.owner ? ' <span class="bg-indigo-100 text-indigo-700 px-1.5 rounded text-[9px] font-semibold">owner</span>' : ''}</div>
+                            <div class="text-slate-500">${escOwner(x.keterangan) || '<span class="text-slate-300">tanpa keterangan</span>'}</div>
+                            <div class="text-[10px] text-slate-400">${escOwner(x.tanggal)} ${escOwner(x.waktu)} • ${escOwner(x.sales_rep)}</div>
+                        </div>
+                        <div class="font-extrabold text-orange-700 shrink-0">${rupiah(x.jumlah)}</div>
+                    </div>`).join('');
+        }
+
         // ============ BAYAR KREDIT (OWNER) ============
         function labelStatusKredit(status) {
             if (status === 'Lunas') return '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Lunas</span>';
@@ -1789,15 +2004,27 @@
             document.getElementById('riwayat-loading').classList.remove('hidden');
             document.getElementById('riwayat-kosong').classList.add('hidden');
             document.getElementById('riwayat-wrapper').classList.add('hidden');
+            const nomor = ++riwayatPermintaanKe;   // kalau tanggal diganti cepat-cepat, hanya jawaban terakhir yang dipakai
+            riwayatGalat = '';
 
             fetchDenganRetry(`${APPS_SCRIPT_URL}?action=riwayat_transaksi&start_date=${start}&end_date=${end}&metode_bayar=${metode}`)
                 .then(result => {
+                    if (nomor !== riwayatPermintaanKe) return;
                     document.getElementById('riwayat-loading').classList.add('hidden');
+                    if (result.status !== 'success') riwayatGalat = 'Gagal memuat riwayat: ' + (result.message || 'tidak diketahui');
                     daftarRiwayat = (result.status === 'success' && result.daftar) ? result.daftar : [];
+                    renderRiwayat();
+                })
+                .catch(err => {
+                    if (nomor !== riwayatPermintaanKe) return;
+                    document.getElementById('riwayat-loading').classList.add('hidden');
+                    daftarRiwayat = [];
+                    riwayatGalat = 'Koneksi error: ' + err.message + '. Klik Tampilkan untuk mencoba lagi.';
                     renderRiwayat();
                 });
         }
 
+        let riwayatPermintaanKe = 0, riwayatGalat = '';
         // Pencarian jalan di data yang sudah dimuat (tanpa minta ke server lagi)
         let daftarRiwayat = [];
         function renderRiwayat() {
@@ -1809,7 +2036,10 @@
             document.getElementById('riwayat-wrapper').classList.add('hidden');
             const kosong = document.getElementById('riwayat-kosong');
             if (cocok.length === 0) {
-                kosong.innerText = q ? `Tidak ada transaksi yang cocok dengan "${document.getElementById('riwayat_cari').value.trim()}".` : 'Tidak ada transaksi pada rentang & filter ini.';
+                const rentang = `${document.getElementById('riwayat_start').value} s/d ${document.getElementById('riwayat_end').value}`;
+                kosong.innerText = riwayatGalat ? riwayatGalat
+                    : q ? `Tidak ada yang cocok dengan "${document.getElementById('riwayat_cari').value.trim()}" di ${daftarRiwayat.length} transaksi (${rentang}).`
+                    : `Tidak ada transaksi pada ${rentang}.`;
                 kosong.classList.remove('hidden');
                 return;
             }
@@ -2552,6 +2782,19 @@
                 });
         }
 
+        let posisiKasTerakhir = null;
+        function renderPosisiKas(pk) {
+            posisiKasTerakhir = pk;
+            document.getElementById('kas-pemasukan-cash').innerText = rupiah(pk.total_pemasukan_cash);
+            document.getElementById('kas-penagihan').innerText = rupiah(pk.total_penagihan_cash + pk.total_penagihan_transfer);
+            document.getElementById('kas-pengeluaran').innerText = rupiah(pk.total_pengeluaran);
+            document.getElementById('kas-retur').innerText = rupiah(pk.total_retur_uang_kembali || 0);
+            document.getElementById('kas-setor').innerText = rupiah(pk.total_setor_pusat || 0);
+            document.getElementById('kas-rekening').innerText = rupiah(pk.saldo_rekening);
+            document.getElementById('kas-uang-fisik').innerText = rupiah(pk.uang_fisik);
+            document.getElementById('kas-total-uang').innerText = rupiah(pk.total_uang);
+        }
+
         function render(d) {
             // Ringkasan outlet
             document.getElementById('kpi-total-outlet').innerText = d.outlet_summary.total;
@@ -2560,13 +2803,7 @@
             document.getElementById('kpi-piutang').innerText = rupiah(d.piutang_outstanding);
 
             // Posisi Kas
-            document.getElementById('kas-pemasukan-cash').innerText = rupiah(d.posisi_kas.total_pemasukan_cash);
-            document.getElementById('kas-penagihan').innerText = rupiah(d.posisi_kas.total_penagihan_cash + d.posisi_kas.total_penagihan_transfer);
-            document.getElementById('kas-pengeluaran').innerText = rupiah(d.posisi_kas.total_pengeluaran);
-            document.getElementById('kas-retur').innerText = rupiah(d.posisi_kas.total_retur_uang_kembali || 0);
-            document.getElementById('kas-rekening').innerText = rupiah(d.posisi_kas.saldo_rekening);
-            document.getElementById('kas-uang-fisik').innerText = rupiah(d.posisi_kas.uang_fisik);
-            document.getElementById('kas-total-uang').innerText = rupiah(d.posisi_kas.total_uang);
+            renderPosisiKas(d.posisi_kas);
 
             document.getElementById('kpi-visit').innerText = d.totals.total_visit;
             document.getElementById('kpi-order').innerText = d.totals.total_order;
