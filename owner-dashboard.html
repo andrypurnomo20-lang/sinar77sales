@@ -357,6 +357,21 @@
                 <p id="pel-print-ringkasan" class="text-xs text-slate-600"></p>
             </div>
             <div class="card p-4 mb-4 no-print">
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <label class="text-[10px] font-semibold uppercase text-slate-500">Periode order</label>
+                    <select id="pel_periode" onchange="ubahPeriodePelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                        <option value="semua">Semua waktu</option>
+                        <option value="bulan_ini">Bulan ini</option>
+                        <option value="bulan_lalu">Bulan lalu</option>
+                        <option value="tanggal">Pilih tanggal...</option>
+                    </select>
+                    <span id="pel_periode_tanggal" class="hidden items-center gap-1.5">
+                        <input type="date" id="pel_periode_start" onchange="ubahPeriodePelanggan()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
+                        <span class="text-xs text-slate-400">s/d</span>
+                        <input type="date" id="pel_periode_end" onchange="ubahPeriodePelanggan()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs">
+                    </span>
+                    <span id="pel_periode_info" class="text-[10px] text-slate-400"></span>
+                </div>
                 <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
                     <select id="pel_filter_sales" onchange="renderDirektoriPelanggan()" class="px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
                         <option value="">Semua Sales</option>
@@ -1786,6 +1801,37 @@
         // ============ STOK DEPO ============
         // ============ DIREKTORI PELANGGAN ============
         let dataDirektoriPelanggan = [];
+        let dataPeriodePelanggan = null;   // null = semua waktu; kalau terisi: {outletId: {orders, omzet, last_order}}
+        let labelPeriodePelanggan = '', periodePermintaanKe = 0;
+
+        function ubahPeriodePelanggan() {
+            const mode = document.getElementById('pel_periode').value;
+            const kotakTgl = document.getElementById('pel_periode_tanggal');
+            kotakTgl.classList.toggle('hidden', mode !== 'tanggal'); kotakTgl.classList.toggle('flex', mode === 'tanggal');
+            const opsiBelum = document.querySelector('#pel_filter_repeat option[value="belum"]');
+            const info = document.getElementById('pel_periode_info');
+            if (mode === 'semua') {
+                ++periodePermintaanKe; dataPeriodePelanggan = null; labelPeriodePelanggan = ''; info.innerText = '';
+                opsiBelum.text = 'Belum pernah order'; renderDirektoriPelanggan(); return;
+            }
+            const t = new Date(); let start, end;
+            if (mode === 'bulan_ini') { start = tglLokal(new Date(t.getFullYear(), t.getMonth(), 1)); end = tglLokal(t); }
+            else if (mode === 'bulan_lalu') { start = tglLokal(new Date(t.getFullYear(), t.getMonth() - 1, 1)); end = tglLokal(new Date(t.getFullYear(), t.getMonth(), 0)); }
+            else { start = document.getElementById('pel_periode_start').value; end = document.getElementById('pel_periode_end').value; if (!start || !end) { info.innerText = 'Isi tanggal dari dan sampai.'; return; } }
+            if (start > end) { info.innerText = 'Tanggal "dari" harus sebelum "sampai".'; return; }
+            const nomor = ++periodePermintaanKe;
+            info.innerText = `Memuat ${start} s/d ${end}...`;
+            fetchDenganRetry(`${APPS_SCRIPT_URL}?action=pelanggan_periode&start_date=${start}&end_date=${end}`)
+                .then(r => {
+                    if (nomor !== periodePermintaanKe) return;
+                    if (r.status !== 'success') { info.innerText = 'Gagal memuat: ' + r.message; return; }
+                    dataPeriodePelanggan = r.outlet; labelPeriodePelanggan = `${start} s/d ${end}`;
+                    info.innerText = 'Jumlah order, omzet & order terakhir dihitung pada periode ini saja. Piutang tetap posisi saat ini.';
+                    opsiBelum.text = 'Tidak order di periode ini';
+                    renderDirektoriPelanggan();
+                })
+                .catch(err => { if (nomor === periodePermintaanKe) info.innerText = 'Koneksi error: ' + err.message; });
+        }
 
         function initPelangganTab() {
             document.getElementById('pel-loading').classList.remove('hidden');
@@ -1821,7 +1867,11 @@
             const sortF = document.getElementById('pel_filter_sort').value;
             const cari = document.getElementById('pel_cari').value.trim().toLowerCase();
 
-            let list = dataDirektoriPelanggan.filter(p => {
+            // Kalau periode dipilih, jumlah order / omzet / order terakhir diganti dengan angka periode itu saja
+            const sumber = dataPeriodePelanggan
+                ? dataDirektoriPelanggan.map(p => { const o = dataPeriodePelanggan[p.id] || {}; return Object.assign({}, p, { total_orders: o.orders || 0, total_omzet: o.omzet || 0, last_order: o.last_order || '', _periode: true }); })
+                : dataDirektoriPelanggan;
+            let list = sumber.filter(p => {
                 if (salesF && p.sales_rep !== salesF) return false;
                 if (tipeF && p.tipe !== tipeF) return false;
                 if (statusF === 'Trial' && !p.trial_bulan_ini) return false;
@@ -1839,7 +1889,7 @@
             else if (sortF === 'last_order') list.sort((a, b) => (a.last_order || '').localeCompare(b.last_order || ''));
             else list.sort((a, b) => a.name.localeCompare(b.name));
 
-            const ringkas = `Menampilkan ${list.length} dari ${dataDirektoriPelanggan.length} pelanggan`;
+            const ringkas = `Menampilkan ${list.length} dari ${dataDirektoriPelanggan.length} pelanggan` + (labelPeriodePelanggan ? ` • Periode order: ${labelPeriodePelanggan}` : ' • Semua waktu');
             document.getElementById('pel-ringkasan').innerText = ringkas;
             document.getElementById('pel-print-ringkasan').innerText = `${ringkas} — dicetak ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('pel-kosong').classList.toggle('hidden', list.length > 0);
@@ -1876,14 +1926,14 @@
                     <div class="grid grid-cols-3 gap-2 my-2.5 text-center">
                         <div class="bg-slate-50 rounded-lg py-1.5">
                             <div class="text-[9px] text-slate-500 uppercase">Order Terakhir</div>
-                            <div class="text-xs font-bold ${p.last_order ? 'text-slate-800' : 'text-slate-400'}">${p.last_order ? escOwner(p.last_order) : 'Belum pernah order'}</div>
+                            <div class="text-xs font-bold ${p.last_order ? 'text-slate-800' : 'text-slate-400'}">${p.last_order ? escOwner(p.last_order) : (p._periode ? 'Tidak order' : 'Belum pernah order')}</div>
                         </div>
                         <div class="bg-slate-50 rounded-lg py-1.5">
-                            <div class="text-[9px] text-slate-500 uppercase">Jumlah Order</div>
+                            <div class="text-[9px] text-slate-500 uppercase">${p._periode ? 'Order di Periode' : 'Jumlah Order'}</div>
                             <div class="text-xs font-bold text-slate-800">${p.total_orders}x</div>
                         </div>
                         <div class="bg-slate-50 rounded-lg py-1.5">
-                            <div class="text-[9px] text-slate-500 uppercase">Total Omzet</div>
+                            <div class="text-[9px] text-slate-500 uppercase">${p._periode ? 'Omzet Periode' : 'Total Omzet'}</div>
                             <div class="text-xs font-bold text-slate-800">${rupiah(p.total_omzet)}</div>
                         </div>
                     </div>
@@ -2279,6 +2329,17 @@
             }).join('');
         }
 
+        function daftarBonusHtml(judul, daftar, bg) {
+            daftar = daftar || [];
+            if (daftar.length === 0) return '';
+            const baris = daftar.map((d, i) => `<div class="flex justify-between gap-2 py-0.5 border-b border-slate-100 last:border-0">
+                <span class="text-slate-700">${i + 1}. ${escOwner(d.nama || d.outlet_id)}</span>
+                <span class="text-slate-400 whitespace-nowrap">${escOwner(d.tanggal || '')}${d.jumlah_order > 1 ? ' • ' + d.jumlah_order + ' order' : ''}</span></div>`).join('');
+            return `<details class="mt-1 ${bg} rounded-lg px-2 py-1">
+                <summary class="cursor-pointer text-[11px] font-semibold text-slate-700">${judul}: ${daftar.length} outlet — lihat daftar</summary>
+                <div class="mt-1 text-[11px]">${baris}</div></details>`;
+        }
+
         function renderKartuSalesBulanan(s, i) {
             const adaSetoran = s.setoran.hari_tercatat > 0;
             const kartu = (label, nilai, sub, bg, fg, nilaiCls) => `
@@ -2300,6 +2361,8 @@
                     ${baris('Rata-rata nilai order', rupiah(s.rata_nilai_order))}
                     ${baris('Outlet order ulang (Repeat)', s.repeat_outlet)}
                     ${baris('Estimasi bonus', `${rupiah(s.bonus_estimasi)} <span class="text-slate-400 font-normal">(Trial ${s.pelanggan_baru_trial}, Repeat ${s.repeat_outlet})</span>`)}
+                    ${daftarBonusHtml('Pelanggan baru (Trial)', s.daftar_trial, 'bg-emerald-50')}
+                    ${daftarBonusHtml('Outlet Repeat', s.daftar_repeat, 'bg-blue-50')}
                     <div class="mt-2 pt-2 border-t border-slate-200">
                         <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">Item terjual (sudah terkirim)</div>
                         ${s.item_terjual.length === 0 ? '<p class="text-slate-400">Belum ada.</p>' : s.item_terjual.map(it => baris(escOwner(it.item), angkaRapi(it.qty))).join('')}
