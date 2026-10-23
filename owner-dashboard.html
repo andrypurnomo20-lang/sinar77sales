@@ -68,7 +68,7 @@
             <!-- Ringkasan Outlet -->
             <section>
                 <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Ringkasan Outlet (Semua Waktu)</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="text-[10px] text-slate-400 uppercase">Total Outlet</div>
                         <div class="text-2xl font-extrabold text-slate-900" id="kpi-total-outlet">0</div>
@@ -76,6 +76,11 @@
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="text-[10px] text-slate-400 uppercase">Outlet Active</div>
                         <div class="text-2xl font-extrabold text-emerald-600" id="kpi-active-outlet">0</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Outlet Repeat</div>
+                        <div class="text-2xl font-extrabold text-sky-600" id="kpi-outlet-repeat">0</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5" id="kpi-outlet-repeat-sub"></div>
                     </div>
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="text-[10px] text-slate-400 uppercase">Outlet Baru (Periode)</div>
@@ -134,7 +139,7 @@
             <!-- KPI Periode -->
             <section>
                 <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Aktivitas Periode Terpilih</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                         <div class="text-[10px] text-slate-400 uppercase">Total Kunjungan</div>
                         <div class="text-2xl font-extrabold text-slate-900" id="kpi-visit">0</div>
@@ -149,8 +154,14 @@
                         <div class="text-[10px] text-slate-400 mt-0.5" id="kpi-omzet-retur"></div>
                     </div>
                     <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
-                        <div class="text-[10px] text-slate-400 uppercase">Repeat Rate</div>
+                        <div class="text-[10px] text-slate-400 uppercase">Repeat Rate (Order)</div>
                         <div class="text-2xl font-extrabold text-slate-900" id="kpi-repeat-rate">0%</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5" id="kpi-repeat-rate-sub"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="text-[10px] text-slate-400 uppercase">Repeat Rate Pelanggan</div>
+                        <div class="text-2xl font-extrabold text-sky-600" id="kpi-repeat-rate-pelanggan">0%</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5" id="kpi-repeat-rate-pelanggan-sub"></div>
                     </div>
                 </div>
             </section>
@@ -626,8 +637,8 @@
 
             <!-- Edit Order: koreksi metode bayar (Owner only) -->
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-orange-200 space-y-4 max-w-2xl mt-6">
-                <h2 class="text-sm font-bold text-orange-700 uppercase tracking-wider mb-1">Koreksi Metode Bayar</h2>
-                <p class="text-xs text-slate-500 -mt-2">Buat perbaiki kalau sales salah input (misal harusnya Kredit tapi keinput Cash, atau sebaliknya).</p>
+                <h2 class="text-sm font-bold text-orange-700 uppercase tracking-wider mb-1">Edit Transaksi</h2>
+                <p class="text-xs text-slate-500 -mt-2">Koreksi order yang salah input: ubah qty, jatuh tempo, metode bayar, atau batalkan order. Semua angka (omzet, kas, piutang, bonus) ikut berubah otomatis dan tercatat di sheet EDIT ORDER LOG.</p>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -1385,30 +1396,85 @@
                         document.getElementById('edit-order-kosong').classList.remove('hidden');
                         return;
                     }
-                    document.getElementById('edit-order-list').innerHTML = result.daftar.map(o => {
-                        const bisaDiubah = !(o.metode_bayar === 'Kredit' && o.sisa_kredit < o.grand_total);
-                        const badge = o.metode_bayar === 'Cash'
-                            ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
-                            : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
-                        const items = o.items.map(it => `${it.item} (${it.qty})`).join(', ');
-                        return `
-                            <div class="border border-slate-200 rounded-xl p-3">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="font-bold text-slate-800 text-sm">${o.outlet_name}</span>
-                                    ${badge}
-                                </div>
-                                <div class="text-[11px] text-slate-500 mb-2">${items}</div>
-                                <div class="flex justify-between text-sm font-bold mb-2">
-                                    <span>Total</span><span>${rupiah(o.grand_total)}</span>
-                                </div>
-                                ${bisaDiubah
-                                    ? `<button onclick="ubahMetodeBayar('${o.order_id}', '${o.metode_bayar === 'Cash' ? 'Kredit' : 'Cash'}')" class="w-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2 rounded-lg">Ubah jadi ${o.metode_bayar === 'Cash' ? 'Kredit' : 'Cash'}</button>`
-                                    : `<p class="text-[10px] text-red-600 text-center">Sudah ada pelunasan sebagian (Sisa ${rupiah(o.sisa_kredit)} dari ${rupiah(o.grand_total)}) — tidak bisa diubah otomatis, hubungi developer untuk koreksi manual.</p>`
-                                }
-                            </div>
-                        `;
-                    }).join('');
+                    dataEditOrder = {};
+                    result.daftar.forEach(o => { dataEditOrder[o.order_id] = o; });
+                    document.getElementById('edit-order-list').innerHTML = result.daftar.map(kartuEditOrder).join('');
                 });
+        }
+
+        let dataEditOrder = {};
+
+        function kartuEditOrder(o) {
+            const kredit = o.metode_bayar === 'Kredit';
+            const terkunci = o.pengganti_retur ? 'Order pengganti retur (tukar guling) tidak bisa diedit.'
+                : o.ada_retur ? 'Order ini punya retur. Selesaikan/tolak retur dulu.'
+                : (kredit && o.status_kirim !== 'Menunggu Kirim' && o.sisa_kredit < o.grand_total)
+                    ? `Sudah ada pelunasan sebagian (sisa ${rupiah(o.sisa_kredit)} dari ${rupiah(o.grand_total)}) — tidak bisa diedit otomatis.` : '';
+            const badge = kredit
+                ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>'
+                : '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>';
+            const id = escOwner(o.order_id);
+            const itemRows = o.items.map((it, k) => `
+                <div class="flex items-center justify-between gap-2 py-1 border-b border-slate-100 last:border-0">
+                    <div class="text-xs text-slate-700 flex-1">${escOwner(it.item)}<span class="text-slate-400"> • ${rupiah(it.price)}/unit</span></div>
+                    <input type="number" step="0.5" min="0" value="${it.qty}" ${terkunci ? 'disabled' : ''} id="eq_${id}_${k}"
+                        class="w-20 px-2 py-1 border border-slate-300 rounded-lg text-sm text-right">
+                </div>`).join('');
+            const bagianEdit = terkunci
+                ? `<p class="text-[10px] text-red-600 text-center">${terkunci}</p>`
+                : `${kredit ? `<div class="flex items-center justify-between gap-2 mt-2"><label class="text-xs text-slate-600">Jatuh tempo</label>
+                        <input type="date" id="ejt_${id}" value="${escOwner(o.jatuh_tempo || '')}" class="px-2 py-1 border border-slate-300 rounded-lg text-sm"></div>` : ''}
+                    <input type="text" id="eal_${id}" placeholder="Alasan koreksi (wajib)" class="w-full mt-2 px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="simpanEditOrder('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg">Simpan Perubahan</button>
+                        <button onclick="batalkanOrder('${id}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg">Batalkan Order</button>
+                    </div>
+                    <button onclick="ubahMetodeBayar('${id}', '${kredit ? 'Cash' : 'Kredit'}')" class="w-full mt-2 bg-orange-100 hover:bg-orange-200 text-orange-800 text-[11px] font-semibold py-1.5 rounded-lg">Ubah metode jadi ${kredit ? 'Cash' : 'Kredit'}</button>`;
+            return `
+                <div class="border border-slate-200 rounded-xl p-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-slate-800 text-sm">${escOwner(o.outlet_name)}</span>${badge}
+                    </div>
+                    <div class="text-[10px] text-slate-400 mb-1">${id} • ${escOwner(o.jenis || '')}${o.status_kirim === 'Menunggu Kirim' ? ' • Menunggu Kirim' : ''}</div>
+                    ${itemRows}
+                    <div class="flex justify-between text-sm font-bold mt-1"><span>Total</span><span>${rupiah(o.grand_total)}</span></div>
+                    ${bagianEdit}
+                </div>`;
+        }
+
+        function kirimEditOrder(payload, pesanSukses) {
+            return fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(Object.assign({ form_type: 'edit_order', dicatat_oleh: NAMA_OWNER }, payload))
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') { alert(pesanSukses(result)); loadOrdersUntukEdit(); }
+                    else alert('Gagal: ' + result.message);
+                })
+                .catch(err => alert('Koneksi error: ' + err.message));
+        }
+
+        function simpanEditOrder(orderId) {
+            const o = dataEditOrder[orderId];
+            const alasan = document.getElementById('eal_' + orderId).value.trim();
+            if (!alasan) { alert('Isi alasan koreksi dulu.'); return; }
+            const items = o.items.map((it, k) => ({ item: it.item, qty: Number(document.getElementById(`eq_${orderId}_${k}`).value) }));
+            if (items.some(it => isNaN(it.qty) || it.qty < 0)) { alert('Qty tidak valid.'); return; }
+            const jt = document.getElementById('ejt_' + orderId);
+            const baru = items.map(it => it.qty * (o.items.find(x => x.item === it.item).price || 0)).reduce((a, b) => a + b, 0);
+            if (!confirm(`Simpan perubahan order ${o.outlet_name}?\nTotal ${rupiah(o.grand_total)} → ${rupiah(Math.round(baru))}`)) return;
+            kirimEditOrder({ order_id: orderId, items, jatuh_tempo_baru: jt ? jt.value : '', alasan },
+                r => `Tersimpan. Total sekarang ${rupiah(r.grand_total_baru)}.`);
+        }
+
+        function batalkanOrder(orderId) {
+            const o = dataEditOrder[orderId];
+            const alasan = document.getElementById('eal_' + orderId).value.trim();
+            if (!alasan) { alert('Isi alasan pembatalan dulu.'); return; }
+            if (!confirm(`BATALKAN order ${o.outlet_name} (${rupiah(o.grand_total)})?\nOrder dipindah ke sheet ORDER DIBATALKAN dan tidak dihitung lagi di omzet, kas, piutang, dan bonus.`)) return;
+            kirimEditOrder({ order_id: orderId, batal: true, alasan }, r => 'Order dibatalkan.' + (r.trial_dipindah_ke ? ' Order Trial outlet dipindah ke order ' + r.trial_dipindah_ke + '.' : ''));
         }
 
         function ubahMetodeBayar(orderId, metodeBaru) {
@@ -2877,6 +2943,12 @@
 
             const repeatRate = d.repeat_rate.trial > 0 ? Math.round((d.repeat_rate.repeat / d.repeat_rate.trial) * 100) : 0;
             document.getElementById('kpi-repeat-rate').innerText = repeatRate + '%';
+            document.getElementById('kpi-repeat-rate-sub').innerText = `${d.repeat_rate.repeat} order repeat / ${d.repeat_rate.trial} order trial • semua waktu`;
+            const olTrial = d.repeat_rate.outlet_trial || 0, olRepeat = d.repeat_rate.outlet_repeat || 0;
+            document.getElementById('kpi-repeat-rate-pelanggan').innerText = (olTrial > 0 ? Math.round(olRepeat / olTrial * 1000) / 10 : 0).toString().replace('.', ',') + '%';
+            document.getElementById('kpi-repeat-rate-pelanggan-sub').innerText = `${olRepeat} dari ${olTrial} outlet • semua waktu`;
+            document.getElementById('kpi-outlet-repeat').innerText = olRepeat;
+            document.getElementById('kpi-outlet-repeat-sub').innerText = `dari ${olTrial} outlet yang pernah Trial`;
 
             // Chart: Outlet per Tipe
             buatChart('chart-tipe', 'doughnut', Object.keys(d.outlet_summary.by_tipe), Object.values(d.outlet_summary.by_tipe),
