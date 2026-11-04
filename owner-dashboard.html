@@ -166,6 +166,17 @@
                 </div>
             </section>
 
+            <!-- Bonus Promo (barang gratis) -->
+            <section id="bonus-promo-section" class="hidden">
+                <h2 class="text-xs font-bold uppercase text-slate-500 mb-2">Bonus Promo (Periode Terpilih)</h2>
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div><div class="text-[10px] text-amber-700 uppercase">Order dengan bonus</div><div class="text-xl font-extrabold text-amber-900" id="bp-order">0</div></div>
+                    <div><div class="text-[10px] text-amber-700 uppercase">Omzet order itu</div><div class="text-xl font-extrabold text-amber-900" id="bp-omzet">Rp 0</div></div>
+                    <div><div class="text-[10px] text-amber-700 uppercase">Barang digratiskan</div><div class="text-xl font-extrabold text-amber-900" id="bp-unit">0</div><div class="text-[10px] text-amber-700" id="bp-produk"></div></div>
+                    <div><div class="text-[10px] text-amber-700 uppercase">Nilai ritel bonus</div><div class="text-xl font-extrabold text-amber-900" id="bp-nilai">Rp 0</div><div class="text-[10px] text-amber-700">biaya riil lebih rendah (modal)</div></div>
+                </div>
+            </section>
+
             <!-- Grafik: Tipe Outlet & Coverage & Cash/Kredit -->
             <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
@@ -520,6 +531,14 @@
                             <option value="Semua">Semua</option>
                             <option value="Cash">Cash</option>
                             <option value="Kredit">Kredit</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-1">Status Bayar</label>
+                        <select id="riwayat_status" onchange="renderRiwayat()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+                            <option value="Semua">Semua</option>
+                            <option value="Lunas">Lunas</option>
+                            <option value="Belum Lunas">Belum Lunas</option>
                         </select>
                     </div>
                     <div class="flex items-end">
@@ -1519,7 +1538,7 @@
         }
 
         function rincianItemRetur(g) {
-            return g.items.map(it => `<div class="flex justify-between gap-2 text-[11px]"><span class="min-w-0">${escOwner(it.produk)} × ${it.qty} <span class="${it.kondisi === 'Layak' ? 'text-emerald-600' : 'text-red-600'} font-semibold">${escOwner(it.kondisi)}</span>${it.alasan ? ` <span class="text-slate-400">• ${escOwner(it.alasan)}</span>` : ''}</span><span class="shrink-0 font-semibold">${rupiah(it.nilai)}</span></div>`).join('');
+            return g.items.map(it => `<div class="flex justify-between gap-2 text-[11px]"><span class="min-w-0">${escOwner(it.produk)} × ${it.qty} <span class="${it.kondisi !== 'Tidak Layak' ? 'text-emerald-600' : 'text-red-600'} font-semibold">${escOwner(it.kondisi)}</span>${it.alasan ? ` <span class="text-slate-400">• ${escOwner(it.alasan)}</span>` : ''}</span><span class="shrink-0 font-semibold">${rupiah(it.nilai)}</span></div>`).join('');
         }
 
         // Perkiraan dampak yang akan terjadi kalau disetujui (angka resmi dihitung server saat disetujui)
@@ -2145,9 +2164,11 @@
         let daftarRiwayat = [];
         function renderRiwayat() {
             const q = (document.getElementById('riwayat_cari').value || '').trim().toLowerCase();
-            const cocok = q ? daftarRiwayat.filter(o =>
+            const stFilter = document.getElementById('riwayat_status').value;
+            const dasar = stFilter === 'Semua' ? daftarRiwayat : daftarRiwayat.filter(o => (o.status_bayar === 'Belum Lunas' ? 'Belum Lunas' : (o.status_bayar === 'Lunas' ? 'Lunas' : '')) === stFilter);
+            const cocok = q ? dasar.filter(o =>
                 [o.outlet_name, o.order_id, o.sales_rep, o.metode_bayar, o.items.map(it => it.item).join(' ')]
-                    .join(' ').toLowerCase().includes(q)) : daftarRiwayat;
+                    .join(' ').toLowerCase().includes(q)) : dasar;
 
             document.getElementById('riwayat-wrapper').classList.add('hidden');
             const kosong = document.getElementById('riwayat-kosong');
@@ -2170,6 +2191,9 @@
                 const badge = o.metode_bayar === 'Cash'
                     ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cash</span>'
                     : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Kredit</span>';
+                const lunasBadge = o.metode_bayar === 'Cash' ? ''
+                    : (o.status_bayar === 'Lunas' ? ' <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[9px] font-semibold">Lunas</span>'
+                    : o.status_bayar === 'Belum Lunas' ? ` <span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[9px] font-semibold">Belum Lunas${o.sisa_kredit ? ' ' + rupiah(o.sisa_kredit) : ''}</span>` : '');
                 const statusBadge = o.status_pengiriman === 'Menunggu Kirim'
                     ? ' <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px]">Menunggu Kirim</span>' : '';
                 return `
@@ -2177,7 +2201,7 @@
                         <td class="p-2 text-slate-500">${escOwner(o.tanggal)}</td>
                         <td class="p-2 font-medium">${escOwner(o.outlet_name)}${statusBadge}</td>
                         <td class="p-2 text-slate-500">${items}</td>
-                        <td class="p-2 text-center">${badge}</td>
+                        <td class="p-2 text-center">${badge}${lunasBadge}</td>
                         <td class="p-2 text-right font-semibold">${rupiah(o.grand_total)}</td>
                     </tr>`;
             }).join('');
@@ -2944,6 +2968,13 @@
             const repeatRate = d.repeat_rate.trial > 0 ? Math.round((d.repeat_rate.repeat / d.repeat_rate.trial) * 100) : 0;
             document.getElementById('kpi-repeat-rate').innerText = repeatRate + '%';
             document.getElementById('kpi-repeat-rate-sub').innerText = `${d.repeat_rate.repeat} order repeat / ${d.repeat_rate.trial} order trial • semua waktu`;
+            const bp = d.bonus_promo || { jumlah_order: 0, unit: 0, nilai_ritel: 0, omzet_order: 0, per_produk: {} };
+            document.getElementById('bonus-promo-section').classList.toggle('hidden', !(bp.jumlah_order > 0));
+            document.getElementById('bp-order').innerText = bp.jumlah_order;
+            document.getElementById('bp-omzet').innerText = rupiah(bp.omzet_order);
+            document.getElementById('bp-unit').innerText = angkaRapi(bp.unit);
+            document.getElementById('bp-produk').innerText = Object.keys(bp.per_produk).map(k => `${k}: ${angkaRapi(bp.per_produk[k])}`).join(' • ');
+            document.getElementById('bp-nilai').innerText = rupiah(bp.nilai_ritel);
             const olTrial = d.repeat_rate.outlet_trial || 0, olRepeat = d.repeat_rate.outlet_repeat || 0;
             document.getElementById('kpi-repeat-rate-pelanggan').innerText = (olTrial > 0 ? Math.round(olRepeat / olTrial * 1000) / 10 : 0).toString().replace('.', ',') + '%';
             document.getElementById('kpi-repeat-rate-pelanggan-sub').innerText = `${olRepeat} dari ${olTrial} outlet • semua waktu`;
